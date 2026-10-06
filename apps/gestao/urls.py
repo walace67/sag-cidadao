@@ -6,6 +6,8 @@ app_name = "gestao"
 
 urlpatterns = [
     path("", views.dashboard, name="dashboard"),
+    path("mapa/", views.mapa, name="mapa"),
+    path("mapa/dados/", views.mapa_dados, name="mapa_dados"),
     path("cadastros/<slug:tipo>/", views.cadastro_lista, name="cadastro_lista"),
     path("cadastros/<slug:tipo>/novo/", views.cadastro_form, name="cadastro_novo"),
     path("cadastros/<slug:tipo>/<int:pk>/editar/", views.cadastro_form, name="cadastro_editar"),
@@ -14,6 +16,7 @@ urlpatterns = [
     path("servidores/novo/", views.servidor_form, name="servidor_novo"),
     path("servidores/<int:pk>/editar/", views.servidor_form, name="servidor_editar"),
     path("servidores/<int:pk>/ativo/", views.servidor_alternar, name="servidor_alternar"),
+    path("servidores/<int:pk>/2fa/", views.servidor_redefinir_2fa, name="servidor_redefinir_2fa"),
     path("cidadaos/", views.cidadaos, name="cidadaos"),
     path("cidadaos/<int:pk>/ativo/", views.cidadao_alternar, name="cidadao_alternar"),
 ]

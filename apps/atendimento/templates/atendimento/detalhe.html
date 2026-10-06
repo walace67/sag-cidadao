@@ -1,5 +1,7 @@
 {% extends "atendimento/base.html" %}
+{% load static %}
 {% block titulo %}Solicitação{% endblock %}
+{% block cabeca %}{% if s.tem_local %}<link rel="stylesheet" href="{% static 'vendor/leaflet/leaflet.css' %}">{% endif %}{% endblock %}
 {% block conteudo %}
 <p><a href="{% url 'atendimento:painel' %}">&larr; Voltar às solicitações</a></p>
 <h1>{{ s.categoria.nome }} <span class="badge st-{{ s.status }}">{{ s.get_status_display }}</span></h1>
@@ -20,6 +22,31 @@
   </dl>
 </div>
 
+{% if fotos %}
+<div class="card">
+  <h2 style="margin-top:0">Fotos</h2>
+  <div class="fotos">
+    {% for f in fotos %}
+      <figure>
+        <a href="{% url 'atendimento:foto' f.pk %}" target="_blank" rel="noopener"><img src="{% url 'atendimento:foto' f.pk %}" alt="{{ f.get_etapa_display }}" loading="lazy"></a>
+        <figcaption>{{ f.get_etapa_display }} · {{ f.enviada_em|date:"d/m/Y H:i" }}</figcaption>
+      </figure>
+    {% endfor %}
+  </div>
+</div>
+{% endif %}
+
+{% if s.tem_local %}
+<div class="card">
+  <h2 style="margin-top:0">Local</h2>
+  <div class="mapa" data-mapa="ver" data-zoom="17" data-tiles="{{ tiles }}"
+       data-centro="[{{ s.latitude|stringformat:'f' }}, {{ s.longitude|stringformat:'f' }}]"
+       role="img" aria-label="Mapa com o local da solicitação"></div>
+  <p class="suave">Coordenadas: {{ s.latitude|stringformat:'f' }}, {{ s.longitude|stringformat:'f' }} ·
+    <a href="https://www.openstreetmap.org/?mlat={{ s.latitude|stringformat:'f' }}&amp;mlon={{ s.longitude|stringformat:'f' }}#map=18/{{ s.latitude|stringformat:'f' }}/{{ s.longitude|stringformat:'f' }}" target="_blank" rel="noopener">abrir no OpenStreetMap</a></p>
+</div>
+{% endif %}
+
 {% if pode_prioridade %}
 <div class="card">
   <h2 style="margin-top:0">Prioridade</h2>
@@ -37,11 +64,12 @@
 {% elif form.fields.novo_status.choices %}
 <div class="card">
   <h2 style="margin-top:0">Alterar status</h2>
-  <form method="post">
+  <form method="post" enctype="multipart/form-data">
     {% csrf_token %}
     <input type="hidden" name="acao" value="status">
     {{ form.novo_status.label_tag }} {{ form.novo_status }} {{ form.novo_status.errors }}
     {{ form.observacao.label_tag }} {{ form.observacao }}
+    {{ form.foto.label_tag }} {{ form.foto }} {{ form.foto.errors }}
     <p><button class="btn" type="submit">Salvar</button></p>
   </form>
 </div>
@@ -67,3 +95,7 @@
   </tbody>
 </table>
 {% endblock %}
+{% block scripts %}{% if s.tem_local %}
+<script src="{% static 'vendor/leaflet/leaflet.js' %}"></script>
+<script src="{% static 'atendimento/js/mapa.js' %}"></script>
+{% endif %}{% endblock %}

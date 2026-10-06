@@ -20,6 +20,13 @@ class Command(BaseCommand):
             user = User.objects.get(username=usuario)
         except User.DoesNotExist:
             raise CommandError(f"Usuário '{usuario}' não existe.")
+        from apps.auditoria.registro import A, registrar
+
+        era = user.groups.filter(pk=grupo_gestor().pk).exists()
+        registrar(A.PAPEL, objeto=user, detalhes={
+            "Gestor": ["Sim" if era else "Não", "Não" if remover else "Sim"],
+            "origem": "linha de comando (tornar_gestor)",
+        })
         if remover:
             user.groups.remove(grupo_gestor())
             self.stdout.write(self.style.SUCCESS(f"{usuario} deixou de ser gestor."))

@@ -31,4 +31,6 @@ urlpatterns = [
     path("minhas/<int:pk>/cancelar/", views.cancelar_solicitacao, name="cancelar"),
     # Público
     path("consulta/", views.consulta_protocolo, name="consulta"),
+    # Fotos (acesso autorizado, nunca público)
+    path("foto/<int:pk>/", views.foto, name="foto"),
 ]

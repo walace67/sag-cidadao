@@ -1,0 +1,16 @@
+Olá, {{ nome }}.
+
+Sua solicitação de {{ s.categoria.nome }} ({{ s.bairro.nome }}) mudou de situação.
+
+De: {{ h.get_status_anterior_display }}
+Para: {{ h.get_status_novo_display }}
+{% if h.observacao %}Observação da equipe: {{ h.observacao }}
+{% endif %}
+Protocolo: {{ s.protocolo }}
+
+Acompanhe em: {{ link }}
+
+Para deixar de receber estes avisos, desmarque a opção em "Meus dados".
+
+Prefeitura de Porto Velho
+Esta mensagem é automática; não responda.

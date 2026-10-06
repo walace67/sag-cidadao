@@ -21,6 +21,7 @@ echo "==> Banco (migrações) e arquivos estáticos"
 
 echo "==> Reiniciando sem derrubar conexões (HUP = reload gracioso)"
 sudo systemctl reload sag-cidadao
+sudo systemctl restart sag-worker   # o worker carrega o código novo
 sleep 3
 
 echo "==> Verificação de saúde"

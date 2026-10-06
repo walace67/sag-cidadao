@@ -10,12 +10,15 @@ Substitui o admin do Django para o uso do dia a dia:
 """
 from django.contrib import messages
 from django.core.paginator import Paginator
-from django.db.models import Count, ProtectedError, Q
+from django.db.models import Count, Exists, OuterRef, ProtectedError, Q
 from django.http import Http404
 from django.shortcuts import get_object_or_404, redirect, render
 from django.views.decorators.http import require_POST
 
-from apps.atendimento.models import Cidadao, Secretaria, Servidor
+from apps.atendimento.models import Cidadao, Secretaria, Servidor, Solicitacao
+from apps.auditoria.registro import A, diferencas, registrar
+from apps.doisfatores import servicos as dois_fatores
+from apps.doisfatores.models import DispositivoTOTP
 
 from . import services
 from .cadastros import CADASTROS
@@ -152,7 +155,9 @@ def cadastro_form(request, tipo, pk=None):
     objeto = get_object_or_404(cad.model, pk=pk) if pk else None
     form = cad.form(request.POST or None, instance=objeto)
     if request.method == "POST" and form.is_valid():
-        form.save()
+        mudou = diferencas(form)
+        salvo = form.save()
+        registrar(A.ALTERAR if objeto else A.CRIAR, request=request, objeto=salvo, detalhes=mudou)
         messages.success(request, f"{cad.singular.capitalize()} salva com sucesso." if cad.singular.endswith("a") else f"{cad.singular.capitalize()} salvo com sucesso.")
         return redirect("gestao:cadastro_lista", tipo=tipo)
     return render(request, "gestao/cadastro_form.html", {
@@ -167,12 +172,68 @@ def cadastro_excluir(request, tipo, pk):
     objeto = get_object_or_404(cad.model, pk=pk)
     try:
         objeto.delete()
+        objeto.pk = pk  # o delete() zera a chave; o registro precisa dela
+        registrar(A.EXCLUIR, request=request, objeto=objeto)
     except ProtectedError:
         # on_delete=PROTECT em ação: a integridade referencial barrou
         messages.error(request, f"Não foi possível excluir \"{objeto}\": há registros vinculados. {cad.dica_exclusao}")
     else:
         messages.success(request, f"\"{objeto}\" excluído.")
     return redirect("gestao:cadastro_lista", tipo=tipo)
+
+
+# ---------------------------------------------------------------------------
+# Mapa das solicitações
+# ---------------------------------------------------------------------------
+@gestor_required
+def mapa(request):
+    from django.conf import settings
+
+    dias = _dias(request)
+    secretaria = _secretaria(request)
+    return render(request, "gestao/mapa.html", {
+        "periodos": PERIODOS, "dias": dias, "secretarias": services.secretarias_ativas(),
+        "secretaria_sel": secretaria, "cadastros": CADASTROS,
+        "centro": settings.MAPA_CENTRO,
+        "status": [(s.value, s.label) for s in Solicitacao.Status],
+    })
+
+
+@gestor_required
+def mapa_dados(request):
+    """
+    JSON com os pontos do mapa. Minimização (LGPD): vai só o necessário
+    para o mapa; nada do cidadão (nem nome, nem endereço digitado).
+    """
+    from django.http import JsonResponse
+    from django.urls import reverse
+    from django.utils import timezone
+
+    qs = services._base(_dias(request), _secretaria(request))
+    total = qs.count()
+    pontos = [
+        {
+            "lat": float(s.latitude), "lng": float(s.longitude), "status": s.status,
+            "status_rotulo": s.get_status_display(), "categoria": s.categoria.nome, "bairro": s.bairro.nome,
+            "aberta_em": timezone.localtime(s.criado_em).strftime("%d/%m/%Y"),
+            "protocolo": str(s.protocolo)[:8].upper(), "url": reverse("atendimento:detalhe", args=[s.pk]),
+        }
+        for s in qs.filter(latitude__isnull=False).select_related("categoria", "bairro").order_by("-criado_em")[:2000]
+    ]
+    return JsonResponse({"total": total, "pontos": pontos})
+
+
+def _dias(request):
+    try:
+        dias = int(request.GET.get("dias", 30))
+    except ValueError:
+        dias = 30
+    return dias if dias in dict(PERIODOS) else 30
+
+
+def _secretaria(request):
+    sid = request.GET.get("secretaria")
+    return Secretaria.objects.filter(pk=sid, ativa=True).first() if sid and sid.isdigit() else None
 
 
 # ---------------------------------------------------------------------------
@@ -183,6 +244,7 @@ def servidores(request):
     qs = Servidor.objects.select_related("usuario", "secretaria").annotate(
         atendidas=Count("solicitacoes_atribuidas"),
         gestor=Count("usuario__groups", filter=Q(usuario__groups__name=GRUPO_GESTOR)),
+        dois_fatores=Exists(DispositivoTOTP.objects.filter(usuario=OuterRef("usuario"), confirmado_em__isnull=False)),
     ).order_by("secretaria__sigla", "usuario__first_name")
     q = request.GET.get("q", "").strip()
     if q:
@@ -208,7 +270,13 @@ def servidor_form(request, pk=None):
         }
     form = ServidorForm(request.POST or None, initial=inicial, servidor=servidor)
     if request.method == "POST" and form.is_valid():
-        services.salvar_servidor(form.cleaned_data, servidor)
+        mudou = diferencas(form, inicial)
+        salvo = services.salvar_servidor(form.cleaned_data, servidor)
+        registrar(A.ALTERAR if servidor else A.CRIAR, request=request, objeto=salvo.usuario, detalhes=mudou)
+        if "gestor" in form.changed_data:
+            registrar(A.PAPEL, request=request, objeto=salvo.usuario,
+                      detalhes={"Gestor": ["Sim" if inicial.get("gestor") else "Não",
+                                           "Sim" if form.cleaned_data["gestor"] else "Não"]})
         messages.success(request, "Servidor salvo com sucesso.")
         return redirect("gestao:servidores")
     return render(request, "gestao/servidor_form.html", {"form": form, "servidor": servidor, "cadastros": CADASTROS})
@@ -222,7 +290,24 @@ def servidor_alternar(request, pk):
         messages.error(request, "Você não pode desativar o próprio acesso.")
     else:
         ativo = services.alternar_ativo(servidor.usuario)
+        registrar(A.ATIVAR if ativo else A.DESATIVAR, request=request, objeto=servidor.usuario)
         messages.success(request, f"Acesso de {servidor.usuario.get_full_name()} {'reativado' if ativo else 'desativado'}.")
+    return redirect("gestao:servidores")
+
+
+@gestor_required
+@require_POST
+def servidor_redefinir_2fa(request, pk):
+    """Celular perdido e sem códigos: o gestor apaga o dispositivo; no
+    próximo login o servidor configura de novo. Fica na auditoria."""
+    servidor = get_object_or_404(Servidor.objects.select_related("usuario"), pk=pk)
+    if servidor.usuario_id == request.user.pk:
+        messages.error(request, "Outro gestor precisa redefinir a sua verificação.")
+    else:
+        dois_fatores.remover(servidor.usuario)
+        registrar(A.DOIS_FATORES, request=request, objeto=servidor.usuario, detalhes={"evento": "redefinida pelo gestor"})
+        messages.success(request, f"Verificação em duas etapas de {servidor.usuario.get_full_name()} redefinida. "
+                                  "No próximo acesso, ele vai configurar o aplicativo de novo.")
     return redirect("gestao:servidores")
 
 
@@ -250,5 +335,6 @@ def cidadaos(request):
 def cidadao_alternar(request, pk):
     cidadao = get_object_or_404(Cidadao.objects.select_related("usuario"), pk=pk)
     ativo = services.alternar_ativo(cidadao.usuario)
+    registrar(A.ATIVAR if ativo else A.DESATIVAR, request=request, objeto=cidadao.usuario)
     messages.success(request, f"Acesso de {cidadao.nome_completo} {'reativado' if ativo else 'bloqueado'}.")
     return redirect("gestao:cidadaos")

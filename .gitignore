@@ -17,6 +17,9 @@ dados.json
 *.sql
 backups/
 
+# ---- Fotos enviadas pelos usuários (dados pessoais) ----
+media/
+
 # ---- Gerados ----
 staticfiles/
 *.log

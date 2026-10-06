@@ -30,6 +30,8 @@ from django.utils.encoding import force_bytes
 from django.utils.http import urlsafe_base64_decode, urlsafe_base64_encode
 from django.views.decorators.http import require_http_methods
 
+from apps.auditoria.registro import A, diferencas, registrar
+
 from . import seguranca, services
 from .forms import CadastroCidadaoForm, LoginForm, MeusDadosForm
 
@@ -141,6 +143,13 @@ class LoginSeguro(auth_views.LoginView):
 
     def form_valid(self, form):
         seguranca.zerar(self._chave_conta())
+        usuario = form.get_user()
+        # Conta com verificação em duas etapas: a senha certa ainda NÃO
+        # autentica; falta o código do aplicativo.
+        from apps.doisfatores import servicos as dois_fatores, views as dois_fatores_views
+
+        if dois_fatores.dispositivo_ativo(usuario):
+            return dois_fatores_views.iniciar_segunda_etapa(self.request, usuario, self.get_redirect_url())
         return super().form_valid(form)
 
 
@@ -166,7 +175,10 @@ def meus_dados(request):
     cidadao = request.user.cidadao
     form = MeusDadosForm(request.POST or None, instance=cidadao)
     if request.method == "POST" and form.is_valid():
+        mudou = diferencas(form)
         form.save()
+        if mudou:
+            registrar(A.DADOS_CORRIGIDOS, request=request, objeto=request.user, detalhes=mudou)
         messages.success(request, "Dados atualizados.")
         return redirect("atendimento:meus_dados")
     return render(request, "atendimento/meus_dados.html", {
@@ -180,6 +192,7 @@ def exportar_dados(request):
     if not hasattr(request.user, "cidadao"):
         return redirect("atendimento:inicio")
     c = request.user.cidadao
+    registrar(A.DADOS_EXPORTADOS, request=request, objeto=request.user, detalhes={"formato": "JSON"})
     dados = {
         "gerado_em": timezone.now(),
         "titular": {
@@ -206,3 +219,25 @@ def exportar_dados(request):
     )
     resposta["Content-Disposition"] = 'attachment; filename="meus-dados-sag-cidadao.json"'
     return resposta
+
+
+# ---------------------------------------------------------------------------
+# Troca e redefinição de senha, com registro na auditoria
+# ---------------------------------------------------------------------------
+class AlterarSenha(auth_views.PasswordChangeView):
+    template_name = "atendimento/senha/alterar.html"
+
+    def form_valid(self, form):
+        resposta = super().form_valid(form)
+        registrar(A.SENHA, request=self.request, objeto=self.request.user, detalhes={"como": "pelo próprio usuário"})
+        return resposta
+
+
+class NovaSenhaPorLink(auth_views.PasswordResetConfirmView):
+    template_name = "atendimento/senha/nova.html"
+
+    def form_valid(self, form):
+        resposta = super().form_valid(form)
+        registrar(A.SENHA, request=self.request, usuario=form.user, objeto=form.user,
+                  detalhes={"como": "link de redefinição enviado por e-mail"})
+        return resposta

@@ -138,6 +138,8 @@ class Cidadao(ModeloAuditavel):
     termo_aceito_em = models.DateTimeField(null=True, blank=True)
     # Quando o cidadão confirmou o e-mail pelo link de ativação.
     email_confirmado_em = models.DateTimeField(null=True, blank=True)
+    # Avisos por e-mail sobre o andamento das solicitações (o titular decide)
+    receber_avisos = models.BooleanField(default=True)
 
     @property
     def pendente(self):
@@ -246,6 +248,10 @@ class Solicitacao(ModeloAuditavel):
 
     descricao = models.TextField()
     endereco_referencia = models.CharField(max_length=255)
+    # Ponto no mapa (opcional). DECIMAL(9,6): 6 casas = precisão de ~10 cm,
+    # sem os erros de arredondamento do tipo FLOAT.
+    latitude = models.DecimalField(max_digits=9, decimal_places=6, null=True, blank=True)
+    longitude = models.DecimalField(max_digits=9, decimal_places=6, null=True, blank=True)
     status = models.CharField(max_length=3, choices=Status.choices, default=Status.ABERTA)
     prioridade = models.PositiveSmallIntegerField(
         choices=Prioridade.choices, default=Prioridade.MEDIA
@@ -269,10 +275,63 @@ class Solicitacao(ModeloAuditavel):
                 ),
                 name="ck_solic_conclusao_coerente",
             ),
+            # Coordenadas: as duas ou nenhuma, e dentro dos limites do planeta.
+            # ATENÇÃO à lógica de três valores do SQL: "longitude >= -180" com
+            # longitude NULL dá DESCONHECIDO (nem verdadeiro, nem falso), e o
+            # CHECK só recusa o que é FALSO. Sem o IS NOT NULL explícito, uma
+            # latitude sem longitude passaria. O teste automático pegou isso.
+            models.CheckConstraint(
+                condition=(
+                    Q(latitude__isnull=True, longitude__isnull=True)
+                    | Q(latitude__isnull=False, longitude__isnull=False,
+                        latitude__gte=-90, latitude__lte=90, longitude__gte=-180, longitude__lte=180)
+                ),
+                name="ck_solic_coordenadas",
+            ),
         ]
 
     def __str__(self):
         return f"{str(self.protocolo)[:8].upper()} - {self.categoria}"
+
+    @property
+    def tem_local(self):
+        return self.latitude is not None and self.longitude is not None
+
+
+def caminho_foto(instancia, nome_original):
+    """
+    O nome enviado pelo usuário é DESCARTADO: um nome aleatório evita
+    sobrescrever arquivos, adivinhar endereços e ataques com nomes como
+    "../../settings.py" (path traversal).
+    """
+    from django.utils import timezone
+
+    agora = timezone.now()
+    return f"solicitacoes/{agora:%Y/%m}/{uuid.uuid4().hex}.jpg"
+
+
+class FotoSolicitacao(models.Model):
+    """Fotos do problema (cidadão, na abertura) e do serviço feito (servidor)."""
+
+    class Etapa(models.TextChoices):
+        PROBLEMA = "PRO", "Foto do problema"
+        SERVICO = "SER", "Foto do serviço realizado"
+
+    solicitacao = models.ForeignKey(Solicitacao, on_delete=models.CASCADE, related_name="fotos")
+    arquivo = models.ImageField(upload_to=caminho_foto, width_field="largura", height_field="altura")
+    etapa = models.CharField(max_length=3, choices=Etapa.choices, default=Etapa.PROBLEMA)
+    enviada_por = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, related_name="+")
+    enviada_em = models.DateTimeField(auto_now_add=True)
+    largura = models.PositiveIntegerField(default=0)
+    altura = models.PositiveIntegerField(default=0)
+    tamanho = models.PositiveIntegerField(default=0)  # bytes
+
+    class Meta:
+        db_table = "foto_solicitacao"
+        ordering = ["enviada_em", "pk"]
+
+    def __str__(self):
+        return f"{self.get_etapa_display()} de {self.solicitacao}"
 
 
 # ---------------------------------------------------------------------------

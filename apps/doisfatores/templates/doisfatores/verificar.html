@@ -1,0 +1,15 @@
+{% extends "atendimento/base.html" %}
+{% block titulo %}Verificação em duas etapas{% endblock %}
+{% block conteudo %}
+<h1>Verificação em duas etapas</h1>
+<div class="card" style="max-width:460px">
+  <p style="margin-top:0">Senha conferida. Agora abra o aplicativo autenticador no seu celular e digite o código de 6 dígitos do <strong>SAG-Cidadão</strong>.</p>
+  <form method="post">
+    {% csrf_token %}
+    {{ form.codigo.label_tag }} {{ form.codigo }} {{ form.codigo.errors }}
+    <p><button class="btn" type="submit">Confirmar</button></p>
+  </form>
+  <p class="suave">Perdeu o celular? Digite um dos códigos de recuperação que você guardou. Cada um funciona uma vez.</p>
+  <p class="suave"><a href="{% url 'login' %}">Voltar e entrar com outra conta</a></p>
+</div>
+{% endblock %}

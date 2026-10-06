@@ -1,0 +1,38 @@
+{% extends "atendimento/base.html" %}
+{% block titulo %}Auditoria{% endblock %}
+{% block conteudo %}
+{% include "gestao/_abas.html" with ativa="auditoria" %}
+<div class="cabecalho-lista">
+  <h1>Trilha de auditoria</h1>
+</div>
+<p class="suave">Quem fez o quê, quando e de onde. Os registros não podem ser alterados nem apagados, nem pelo gestor.</p>
+<form method="get" class="busca">
+  <select name="acao" aria-label="Ação">
+    <option value="">Todas as ações</option>
+    {% for valor, rotulo in acoes %}<option value="{{ valor }}" {% if valor == acao %}selected{% endif %}>{{ rotulo }}</option>{% endfor %}
+  </select>
+  <select name="dias" aria-label="Período">
+    {% for d, rotulo in periodos %}<option value="{{ d }}" {% if d == dias %}selected{% endif %}>{{ rotulo }}</option>{% endfor %}
+  </select>
+  <input type="search" name="quem" value="{{ quem }}" placeholder="Nome de quem fez" aria-label="Quem fez">
+  <button class="btn sec" type="submit">Filtrar</button>
+</form>
+<table>
+  <thead><tr><th>Quando</th><th>Quem</th><th>Ação</th><th>Sobre</th><th>Detalhes</th><th>IP</th></tr></thead>
+  <tbody>
+  {% for r in pagina %}
+    <tr>
+      <td>{{ r.registrado_em|date:"d/m/Y H:i:s" }}</td>
+      <td>{{ r.usuario_nome|default:"—" }}</td>
+      <td>{{ r.get_acao_display }}</td>
+      <td>{% if r.objeto_nome %}{{ r.objeto_tipo|capfirst }}: {{ r.objeto_nome }}{% else %}—{% endif %}</td>
+      <td class="detalhes">{% for chave, texto in r.linhas %}<div><strong>{{ chave }}:</strong> {{ texto }}</div>{% empty %}—{% endfor %}</td>
+      <td>{{ r.ip|default:"—" }}</td>
+    </tr>
+  {% empty %}
+    <tr><td colspan="6" class="suave">Nenhum registro no período.</td></tr>
+  {% endfor %}
+  </tbody>
+</table>
+{% include "gestao/_paginacao.html" %}
+{% endblock %}

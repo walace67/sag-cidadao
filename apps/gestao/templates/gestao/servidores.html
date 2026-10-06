@@ -12,7 +12,7 @@
   {% if q %}<a href="{% url 'gestao:servidores' %}">Limpar</a>{% endif %}
 </form>
 <table>
-  <thead><tr><th>Nome</th><th>Login</th><th>Matrícula</th><th>Secretaria</th><th>Papel</th><th class="num">Atendimentos</th><th>Acesso</th><th class="acoes-col">Ações</th></tr></thead>
+  <thead><tr><th>Nome</th><th>Login</th><th>Matrícula</th><th>Secretaria</th><th>Papel</th><th class="num">Atendimentos</th><th>Acesso</th><th>2 etapas</th><th class="acoes-col">Ações</th></tr></thead>
   <tbody>
   {% for s in pagina %}
     <tr>
@@ -23,15 +23,21 @@
       <td>{% if s.gestor %}Servidor e gestor{% else %}Servidor{% endif %}</td>
       <td class="num">{{ s.atendidas }}</td>
       <td>{% if s.usuario.is_active %}<span class="badge st-CON">Ativo</span>{% else %}<span class="badge st-IND">Desativado</span>{% endif %}</td>
+      <td>{% if s.dois_fatores %}<span class="badge st-CON">Ativa</span>{% else %}<span class="badge st-ABE">Pendente</span>{% endif %}</td>
       <td class="acoes-col">
         <a class="btn sec btn-peq" href="{% url 'gestao:servidor_editar' s.pk %}">Editar</a>
+        {% if s.dois_fatores and s.usuario_id != user.pk %}
+        <form method="post" action="{% url 'gestao:servidor_redefinir_2fa' s.pk %}" class="inline" data-confirmar="Redefinir a verificação em duas etapas de {{ s.usuario.get_full_name }}? Ele vai configurar o aplicativo de novo.">
+          {% csrf_token %}<button class="btn-link" type="submit">Redefinir 2 etapas</button>
+        </form>
+        {% endif %}
         <form method="post" action="{% url 'gestao:servidor_alternar' s.pk %}" class="inline">
           {% csrf_token %}<button class="btn-link {% if s.usuario.is_active %}perigo{% endif %}" type="submit">{% if s.usuario.is_active %}Desativar{% else %}Reativar{% endif %}</button>
         </form>
       </td>
     </tr>
   {% empty %}
-    <tr><td colspan="8" class="suave">Nenhum servidor encontrado.</td></tr>
+    <tr><td colspan="9" class="suave">Nenhum servidor encontrado.</td></tr>
   {% endfor %}
   </tbody>
 </table>

@@ -16,6 +16,7 @@
       <dt>Conta criada em</dt><dd>{{ user.date_joined|date:"d/m/Y H:i" }}</dd>
       <dt>Ciência do aviso</dt><dd>{% if c.termo_aceito_em %}{{ c.termo_aceito_em|date:"d/m/Y H:i" }} (<a href="{% url 'atendimento:privacidade' %}">ler aviso</a>){% else %}Cadastro feito pela prefeitura{% endif %}</dd>
       <dt>Solicitações</dt><dd>{{ total }}</dd>
+      <dt>Avisos por e-mail</dt><dd>{% if c.receber_avisos %}Ativados{% else %}Desativados{% endif %}</dd>
     </dl>
     <p><a class="btn sec" href="{% url 'atendimento:exportar_dados' %}">Baixar meus dados (JSON)</a></p>
   </div>
@@ -23,7 +24,9 @@
     <h2 style="margin-top:0">Corrigir dados</h2>
     <form method="post">
       {% csrf_token %}
-      {% for campo in form %}{{ campo.label_tag }} {{ campo }} {{ campo.errors }}{% endfor %}
+      {{ form.telefone.label_tag }} {{ form.telefone }} {{ form.telefone.errors }}
+      {{ form.bairro.label_tag }} {{ form.bairro }} {{ form.bairro.errors }}
+      <label class="check">{{ form.receber_avisos }} {{ form.receber_avisos.label }}</label>
       <p><button class="btn" type="submit">Salvar</button></p>
     </form>
     <p class="suave">Nome, CPF e e-mail identificam você e só podem ser corrigidos pelo atendimento da prefeitura, mediante comprovação.</p>

@@ -1,0 +1,11 @@
+{% extends "atendimento/base.html" %}
+{% block titulo %}Códigos de recuperação{% endblock %}
+{% block conteudo %}
+<h1>{% if novo %}Verificação ativada{% else %}Novos códigos de recuperação{% endif %}</h1>
+<div class="card" style="max-width:560px">
+  <p style="margin-top:0"><strong>Guarde estes códigos agora.</strong> Eles aparecem só desta vez e servem para entrar se você perder o celular. Cada código funciona uma única vez.{% if not novo %} Os códigos antigos deixaram de valer.{% endif %}</p>
+  <ol class="codigos">{% for c in codigos %}<li><code>{{ c }}</code></li>{% endfor %}</ol>
+  <p class="suave">Sugestão: imprima ou guarde num gerenciador de senhas. Não guarde no mesmo celular do aplicativo.</p>
+  <p><a class="btn" href="{% url 'atendimento:inicio' %}">Já guardei, continuar</a></p>
+</div>
+{% endblock %}

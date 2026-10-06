@@ -1,14 +1,43 @@
 {% extends "atendimento/base.html" %}
+{% load static %}
 {% block titulo %}Nova solicitação{% endblock %}
+{% block cabeca %}<link rel="stylesheet" href="{% static 'vendor/leaflet/leaflet.css' %}">{% endblock %}
 {% block conteudo %}
 <h1>Nova solicitação</h1>
-<div class="card" style="max-width:640px">
-  <form method="post">
+<div class="card" style="max-width:720px">
+  {# multipart/form-data: obrigatório para enviar arquivos num formulário #}
+  <form method="post" enctype="multipart/form-data">
     {% csrf_token %}
-    {% for campo in form %}
-      {{ campo.label_tag }} {{ campo }} {{ campo.errors }}
-    {% endfor %}
+    {{ form.non_field_errors }}
+    {{ form.categoria.label_tag }} {{ form.categoria }} {{ form.categoria.errors }}
+    {{ form.bairro.label_tag }} {{ form.bairro }} {{ form.bairro.errors }}
+    {{ form.endereco_referencia.label_tag }} {{ form.endereco_referencia }} {{ form.endereco_referencia.errors }}
+    {{ form.descricao.label_tag }} {{ form.descricao }} {{ form.descricao.errors }}
+
+    <label>Local no mapa (opcional)</label>
+    <p class="suave" style="margin:2px 0">Clique no mapa onde está o problema ou use a sua localização atual.</p>
+    <p class="linha-form" style="margin:6px 0">
+      <button type="button" class="btn sec btn-peq" id="usar-gps">Usar minha localização</button>
+      <button type="button" class="btn-link" id="limpar-local">Limpar</button>
+    </p>
+    <div class="mapa" data-mapa="escolher"
+         data-centro="[{{ mapa.centro.0|stringformat:'f' }}, {{ mapa.centro.1|stringformat:'f' }}]"
+         data-zoom="{{ mapa.zoom }}" data-tiles="{{ tiles }}"
+         data-limites="[{{ mapa.limites.0|stringformat:'f' }}, {{ mapa.limites.1|stringformat:'f' }}, {{ mapa.limites.2|stringformat:'f' }}, {{ mapa.limites.3|stringformat:'f' }}]"
+         data-lat="{{ form.latitude.id_for_label }}" data-lng="{{ form.longitude.id_for_label }}"
+         data-aviso="aviso-local" data-gps="usar-gps" data-limpar="limpar-local"
+         role="application" aria-label="Mapa para marcar o local do problema"></div>
+    <p class="suave" id="aviso-local" aria-live="polite">Nenhum local marcado (opcional).</p>
+    {{ form.latitude }}{{ form.longitude }}
+
+    {{ form.fotos.label_tag }} {{ form.fotos }} {{ form.fotos.errors }}
+    <p class="suave" style="margin-top:2px">JPEG, PNG ou WebP, até 8 MB cada. Antes de guardar, o sistema apaga os dados escondidos da foto, como a localização GPS e o modelo do celular.</p>
+
     <p><button class="btn" type="submit">Enviar</button></p>
   </form>
 </div>
+{% endblock %}
+{% block scripts %}
+<script src="{% static 'vendor/leaflet/leaflet.js' %}"></script>
+<script src="{% static 'atendimento/js/mapa.js' %}"></script>
 {% endblock %}

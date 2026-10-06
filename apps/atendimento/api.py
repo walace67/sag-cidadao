@@ -21,6 +21,7 @@ Conceitos de prova:
     - Códigos de status: 200, 201, 400, 401, 403, 404, 405, 409
     - Idempotência: GET é seguro e idempotente; POST não é idempotente
 """
+from django.conf import settings
 from django.db.models import Prefetch
 from rest_framework import mixins, permissions, status, viewsets
 from rest_framework.decorators import action
@@ -177,3 +178,25 @@ class ObterToken(ObtainAuthToken):
 
     throttle_classes = [ScopedRateThrottle]
     throttle_scope = "token"
+
+    def post(self, request, *args, **kwargs):
+        """
+        Contas com verificação em duas etapas precisam mandar também o
+        campo "codigo" (do aplicativo). Sem isso, a API seria uma porta
+        dos fundos que pede só a senha.
+        """
+        from rest_framework.authtoken.models import Token
+        from rest_framework.exceptions import ValidationError
+
+        from apps.doisfatores import servicos as dois_fatores
+
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        usuario = serializer.validated_data["user"]
+        dispositivo = dois_fatores.dispositivo_ativo(usuario)
+        if dispositivo and not dois_fatores.verificar_totp(dispositivo, request.data.get("codigo")):
+            raise ValidationError({"codigo": ["Informe o código atual do aplicativo autenticador."]})
+        if not dispositivo and dois_fatores.precisa_2fa(usuario) and settings.EXIGIR_2FA_EQUIPE:
+            raise ValidationError({"codigo": ["Configure a verificação em duas etapas no sistema antes de usar a API."]})
+        token, _ = Token.objects.get_or_create(user=usuario)
+        return Response({"token": token.key})

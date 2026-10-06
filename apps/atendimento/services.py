@@ -20,6 +20,7 @@ from django.db import transaction
 from django.db.models import Count, Max, Q
 from django.utils import timezone
 
+from . import tarefas
 from .models import HistoricoSolicitacao, Solicitacao
 
 Status = Solicitacao.Status
@@ -153,8 +154,18 @@ def apagar_cadastros_pendentes(horas=24):
 # ---------------------------------------------------------------------------
 # Escrita: abrir solicitação
 # ---------------------------------------------------------------------------
+def anexar_fotos(solicitacao, fotos, usuario, etapa):
+    """Grava as fotos já tratadas (imagens.processar_foto) ligadas à solicitação."""
+    from .models import FotoSolicitacao
+
+    for conteudo in fotos:
+        foto = FotoSolicitacao(solicitacao=solicitacao, etapa=etapa, enviada_por=usuario, tamanho=conteudo.size)
+        foto.arquivo.save("foto.jpg", conteudo, save=True)
+
+
 @transaction.atomic
-def abrir_solicitacao(*, cidadao, categoria, bairro, descricao, endereco_referencia):
+def abrir_solicitacao(*, cidadao, categoria, bairro, descricao, endereco_referencia,
+                      latitude=None, longitude=None, fotos=()):
     """
     Cria a solicitação e o primeiro registro de histórico.
 
@@ -168,7 +179,10 @@ def abrir_solicitacao(*, cidadao, categoria, bairro, descricao, endereco_referen
         bairro=bairro,
         descricao=descricao,
         endereco_referencia=endereco_referencia,
+        latitude=latitude,
+        longitude=longitude,
     )
+    anexar_fotos(solicitacao, fotos, cidadao.usuario, "PRO")
     HistoricoSolicitacao.objects.create(
         solicitacao=solicitacao,
         usuario=cidadao.usuario,
@@ -176,13 +190,15 @@ def abrir_solicitacao(*, cidadao, categoria, bairro, descricao, endereco_referen
         status_novo=Status.ABERTA,
         observacao="Solicitação aberta pelo cidadão.",
     )
+    # Só depois do COMMIT: se algo falhar e houver ROLLBACK, nenhum e-mail sai
+    transaction.on_commit(lambda: tarefas.avisar_abertura.enqueue(solicitacao.pk))
     return solicitacao
 
 
 # ---------------------------------------------------------------------------
 # Escrita: alterar status
 # ---------------------------------------------------------------------------
-def alterar_status(*, solicitacao_id, novo_status, usuario, observacao="", responsavel=None):
+def alterar_status(*, solicitacao_id, novo_status, usuario, observacao="", responsavel=None, fotos=()):
     """
     Muda o status e grava o histórico numa ÚNICA transação.
 
@@ -214,13 +230,16 @@ def alterar_status(*, solicitacao_id, novo_status, usuario, observacao="", respo
             solicitacao.responsavel = responsavel
         solicitacao.save()
 
-        HistoricoSolicitacao.objects.create(
+        anexar_fotos(solicitacao, fotos, usuario, "SER")
+        historico = HistoricoSolicitacao.objects.create(
             solicitacao=solicitacao,
             usuario=usuario,
             status_anterior=anterior,
             status_novo=novo_status,
             observacao=observacao,
         )
+        # Aviso ao cidadão em segundo plano, só depois do COMMIT
+        transaction.on_commit(lambda: tarefas.avisar_mudanca_status.enqueue(historico.pk))
     return solicitacao
 
 

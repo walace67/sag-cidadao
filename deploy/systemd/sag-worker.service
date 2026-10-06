@@ -1,0 +1,26 @@
+# Worker das tarefas em segundo plano (avisos por e-mail ao cidadão).
+# Lê a fila guardada no PostgreSQL e executa as tarefas, uma a uma.
+#
+#   sudo cp deploy/systemd/sag-worker.service /etc/systemd/system/
+#   sudo systemctl daemon-reload
+#   sudo systemctl enable --now sag-worker
+#   journalctl -u sag-worker -f
+[Unit]
+Description=SAG-Cidadão: worker de tarefas em segundo plano
+After=network.target postgresql.service
+Requires=postgresql.service
+
+[Service]
+User=sag
+Group=www-data
+WorkingDirectory=/srv/sag_cidadao
+ExecStart=/srv/sag_cidadao/.venv/bin/python manage.py db_worker --interval 2
+Restart=always
+RestartSec=5
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=full
+ProtectHome=true
+
+[Install]
+WantedBy=multi-user.target

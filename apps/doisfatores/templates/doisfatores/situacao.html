@@ -1,0 +1,44 @@
+{% extends "atendimento/base.html" %}
+{% block titulo %}Segurança da conta{% endblock %}
+{% block conteudo %}
+<h1>Segurança da conta</h1>
+<div class="duas-colunas">
+  <div class="card">
+    <h2 style="margin-top:0">Verificação em duas etapas</h2>
+    {% if dispositivo %}
+      <p><span class="badge st-CON">Ativa</span> desde {{ dispositivo.confirmado_em|date:"d/m/Y" }}.</p>
+      <p>Códigos de recuperação disponíveis: <strong>{{ restantes }}</strong> de 10.{% if restantes < 3 %} Gere novos códigos.{% endif %}</p>
+    {% else %}
+      <p><span class="badge st-IND">Desativada</span></p>
+      <p>Além da senha, cada entrada pedirá um código do aplicativo do seu celular. Mesmo que alguém descubra sua senha, não consegue entrar.</p>
+      <p><a class="btn" href="{% url 'doisfatores:configurar' %}">Ativar agora</a></p>
+    {% endif %}
+    <p><a href="{% url 'password_change' %}">Alterar minha senha</a></p>
+  </div>
+  {% if dispositivo %}
+  <div class="card">
+    <h2 style="margin-top:0">Ações</h2>
+    <p class="suave">Todas pedem um código atual do aplicativo.</p>
+    <form method="post" action="{% url 'doisfatores:novos_codigos' %}">
+      {% csrf_token %}
+      <label for="cod1">Código do aplicativo</label> <input id="cod1" name="codigo" inputmode="numeric" autocomplete="one-time-code" required>
+      <p><button class="btn sec" type="submit">Gerar novos códigos de recuperação</button></p>
+    </form>
+    <form method="post" action="{% url 'doisfatores:trocar' %}">
+      {% csrf_token %}
+      <label for="cod2">Código do aplicativo</label> <input id="cod2" name="codigo" inputmode="numeric" autocomplete="one-time-code" required>
+      <p><button class="btn sec" type="submit">Trocar de celular</button></p>
+    </form>
+    {% if not obrigatorio %}
+    <form method="post" action="{% url 'doisfatores:desativar' %}" data-confirmar="Desativar a verificação em duas etapas?">
+      {% csrf_token %}
+      <label for="cod3">Código do aplicativo</label> <input id="cod3" name="codigo" inputmode="numeric" autocomplete="one-time-code" required>
+      <p><button class="btn-link perigo" type="submit">Desativar a verificação</button></p>
+    </form>
+    {% else %}
+    <p class="suave">Para a equipe da prefeitura, a verificação é obrigatória. Perdeu o celular e os códigos? Peça a um gestor para redefinir.</p>
+    {% endif %}
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

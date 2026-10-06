@@ -12,9 +12,9 @@ Projeto de estudo e portfólio construído com **Python, Django e PostgreSQL**. 
 
 | Perfil | O que faz |
 |---|---|
-| **Cidadão** | Faz o autocadastro com confirmação por e-mail, abre solicitações, acompanha o andamento e cancela enquanto a solicitação está aberta. Em "Meus dados", vê, corrige e exporta os próprios dados (LGPD). |
+| **Cidadão** | Faz o autocadastro com confirmação por e-mail, abre solicitações com fotos e o ponto no mapa (clique ou GPS do celular), recebe avisos por e-mail a cada mudança, acompanha o andamento e cancela enquanto a solicitação está aberta. Em "Meus dados", vê, corrige e exporta os próprios dados (LGPD). |
 | **Servidor** | Usa o painel da sua secretaria com filtros e busca, muda o status de acordo com um fluxo validado, define prioridades e consulta o relatório por zona da cidade. |
-| **Gestor** | Acompanha o dashboard (volume, cumprimento de prazo, tempo médio, atrasadas e séries diárias), cuida dos cadastros (secretarias, bairros, serviços e áreas de atuação) e gerencia servidores e cidadãos sem usar o admin do Django. |
+| **Gestor** | Vê as solicitações num mapa da cidade, consulta a trilha de auditoria, acompanha o dashboard (volume, cumprimento de prazo, tempo médio, atrasadas e séries diárias), cuida dos cadastros (secretarias, bairros, serviços e áreas de atuação) e gerencia servidores e cidadãos sem usar o admin do Django. |
 | **Público** | Consulta pelo protocolo, sem login e sem ver dados pessoais. |
 | **API REST** | Autenticação por token, listagem, abertura, mudança de status e cancelamento, com limite de requisições. |
 
@@ -57,6 +57,9 @@ As telas e a API chamam os **mesmos** serviços, então uma regra nunca fica dup
   - minimização de dados (o CPF aparece mascarado);
   - direitos de acesso, correção e portabilidade em JSON (art. 18);
   - cadastros não confirmados são apagados após 24 h.
+- **Verificação em duas etapas (TOTP)** obrigatória para servidores e gestores: QR code, códigos de recuperação, segredo cifrado no banco, proteção contra repetição do código; vale também para o admin e para o token da API.
+- **Trilha de auditoria imutável:** entradas, falhas de login, alterações de cadastro (antes e depois), papéis, bloqueios e exportação de dados. Um trigger do PostgreSQL recusa `UPDATE` e `DELETE`.
+- **Fotos sem dados escondidos:** cada imagem é regravada do zero, o que apaga a localização GPS e os demais metadados EXIF. Arquivos disfarçados e bombas de descompressão são recusados. As fotos não têm endereço público: cada acesso passa pela autorização, e o Nginx entrega o arquivo (`X-Accel-Redirect`).
 - **Segredos:** ficam só no `.env`, que não vai para o Git.
 
 ## Como rodar (desenvolvimento)
@@ -82,7 +85,7 @@ Em desenvolvimento, os e-mails (ativação, redefinição de senha) aparecem **n
 python manage.py test
 ```
 
-São 64 testes automatizados. Eles cobrem:
+São 104 testes automatizados. Eles cobrem:
 
 - o fluxo de status e as constraints do banco;
 - o controle de acesso (403/404);

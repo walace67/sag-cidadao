@@ -1,9 +1,11 @@
 {# Abas da área de gestão. 'ativa' vem do template que inclui. #}
 <nav class="abas" aria-label="Seções da gestão">
   <a href="{% url 'gestao:dashboard' %}" {% if ativa == 'dashboard' %}aria-current="page"{% endif %}>Dashboard</a>
+  <a href="{% url 'gestao:mapa' %}" {% if ativa == 'mapa' %}aria-current="page"{% endif %}>Mapa</a>
   {% for chave, c in cadastros.items %}
     <a href="{% url 'gestao:cadastro_lista' chave %}" {% if ativa == chave %}aria-current="page"{% endif %}>{{ c.titulo }}</a>
   {% endfor %}
   <a href="{% url 'gestao:servidores' %}" {% if ativa == 'servidores' %}aria-current="page"{% endif %}>Servidores</a>
   <a href="{% url 'gestao:cidadaos' %}" {% if ativa == 'cidadaos' %}aria-current="page"{% endif %}>Cidadãos</a>
+  <a href="{% url 'auditoria:lista' %}" {% if ativa == 'auditoria' %}aria-current="page"{% endif %}>Auditoria</a>
 </nav>

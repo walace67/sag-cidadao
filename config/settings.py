@@ -64,6 +64,9 @@ INSTALLED_APPS = [
     "rest_framework.authtoken",
     "apps.atendimento",
     "apps.gestao",
+    "apps.auditoria",
+    "django_tasks_db",  # fila de tarefas guardada no PostgreSQL
+    "apps.doisfatores",
 ]
 
 MIDDLEWARE = [
@@ -74,6 +77,7 @@ MIDDLEWARE = [
     "django.middleware.csrf.CsrfViewMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
+    "apps.doisfatores.middleware.VerificacaoDuasEtapasMiddleware",  # segunda etapa em todas as rotas
     "django.middleware.clickjacking.XFrameOptionsMiddleware",  # X-Frame-Options
 ]
 
@@ -90,6 +94,7 @@ TEMPLATES = [
                 "django.template.context_processors.csp",  # {{ csp_nonce }}
                 "django.contrib.auth.context_processors.auth",
                 "django.contrib.messages.context_processors.messages",
+                "apps.atendimento.contexto.mapa",
             ],
         },
     },
@@ -165,6 +170,20 @@ STATIC_URL = "static/"
 STATIC_ROOT = config("STATIC_ROOT", default=str(BASE_DIR / "staticfiles"))
 
 
+# Fotos enviadas: FORA da pasta de estáticos e sem URL pública.
+# Quem entrega é a view atendimento:foto, depois de checar a permissão.
+MEDIA_ROOT = config("MEDIA_ROOT", default=str(BASE_DIR / "media"))
+# Em produção, o Nginx entrega o arquivo autorizado (X-Accel-Redirect)
+SERVIR_MIDIA_COM_NGINX = config("SERVIR_MIDIA_COM_NGINX", default=False, cast=bool)
+
+# Mapa (OpenStreetMap). Limites aproximados do município de Porto Velho
+# (sul, norte, oeste, leste), usados para recusar pontos fora da cidade.
+MAPA_CENTRO = (-8.7612, -63.9004)
+MAPA_LIMITES = (-10.95, -7.95, -66.85, -62.20)
+MAPA_TILES = config("MAPA_TILES", default="https://tile.openstreetmap.org/{z}/{x}/{y}.png")
+MAPA_TILES_ORIGEM = config("MAPA_TILES_ORIGEM", default="https://tile.openstreetmap.org")
+
+
 # ---------------------------------------------------------------------------
 # HTTPS e cabeçalhos de segurança
 # ---------------------------------------------------------------------------
@@ -204,7 +223,8 @@ SECURE_CSP = {
     "default-src": [CSP.SELF],
     "script-src": [CSP.SELF, CSP.NONCE],
     "style-src": [CSP.SELF, CSP.UNSAFE_INLINE],
-    "img-src": [CSP.SELF, "data:"],
+    # Mapa: as imagens dos "azulejos" (tiles) vêm do servidor de mapas
+    "img-src": [CSP.SELF, "data:", MAPA_TILES_ORIGEM],
     "object-src": [CSP.NONE],
     "base-uri": [CSP.SELF],
     "form-action": [CSP.SELF],
@@ -242,11 +262,37 @@ MAILERS = {
         },
     },
 }
+# Endereço público do sistema, usado nos links dos e-mails enviados em
+# segundo plano (lá não existe requisição para descobrir o domínio).
+SITE_URL = config("SITE_URL", default="http://127.0.0.1:8000").rstrip("/")
+
+
+# ---------------------------------------------------------------------------
+# Tarefas em segundo plano (django.tasks, nativo do Django 6)
+# ---------------------------------------------------------------------------
+# Enviar e-mail é LENTO e pode FALHAR (servidor SMTP fora do ar). Por isso
+# a tela só ENFILEIRA o envio, e um processo separado (o "worker") executa:
+#     python manage.py db_worker
+# Em desenvolvimento e nos testes, o envio acontece na hora (Immediate).
+TASKS = {
+    "default": {
+        "BACKEND": config(
+            "TASKS_BACKEND",
+            default="django.tasks.backends.immediate.ImmediateBackend"
+            if (DEBUG or TESTANDO) else "django_tasks_db.DatabaseBackend",
+        ),
+    }
+}
+
 DEFAULT_FROM_EMAIL = config("DEFAULT_FROM_EMAIL", default="SAG-Cidadão <nao-responda@sag-cidadao.local>")
 
 LOGIN_URL = "login"
 LOGIN_REDIRECT_URL = "atendimento:inicio"
 LOGOUT_REDIRECT_URL = "atendimento:inicio"
+
+# Verificação em duas etapas obrigatória para a equipe (servidores,
+# gestores e administradores). Desligue só em desenvolvimento, se quiser.
+EXIGIR_2FA_EQUIPE = config("EXIGIR_2FA_EQUIPE", default=not TESTANDO, cast=bool)
 
 # Validade dos links de ativação de cadastro e de redefinição de senha
 PASSWORD_RESET_TIMEOUT = 60 * 60 * 24  # 24 horas

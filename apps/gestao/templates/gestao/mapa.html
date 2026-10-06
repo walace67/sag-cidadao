@@ -1,0 +1,34 @@
+{% extends "atendimento/base.html" %}
+{% load static %}
+{% block titulo %}Mapa das solicitações{% endblock %}
+{% block cabeca %}<link rel="stylesheet" href="{% static 'vendor/leaflet/leaflet.css' %}">{% endblock %}
+{% block conteudo %}
+{% include "gestao/_abas.html" with ativa="mapa" %}
+<div class="cabecalho-lista">
+  <h1>Mapa das solicitações</h1>
+</div>
+<form method="get" class="busca">
+  <select name="dias" aria-label="Período" data-autoenvio>
+    {% for d, rotulo in periodos %}<option value="{{ d }}" {% if d == dias %}selected{% endif %}>{{ rotulo }}</option>{% endfor %}
+  </select>
+  <select name="secretaria" aria-label="Secretaria" data-autoenvio>
+    <option value="">Todas as secretarias</option>
+    {% for sec in secretarias %}<option value="{{ sec.pk }}" {% if secretaria_sel.pk == sec.pk %}selected{% endif %}>{{ sec.sigla }}</option>{% endfor %}
+  </select>
+  <noscript><button class="btn sec" type="submit">Aplicar</button></noscript>
+</form>
+<div class="legenda-mapa" aria-label="Legenda">
+  <span style="--cor:#d97706">Aberta</span><span style="--cor:#2a78d6">Em análise</span><span style="--cor:#7c3aed">Em execução</span>
+  <span style="--cor:#15803d">Concluída</span><span style="--cor:#6b7280">Indeferida</span><span style="--cor:#9ca3af">Cancelada</span>
+</div>
+<div class="mapa mapa-grande" data-mapa="gestao" data-zoom="12" data-tiles="{{ tiles }}"
+     data-centro="[{{ centro.0|stringformat:'f' }}, {{ centro.1|stringformat:'f' }}]"
+     data-fonte="{% url 'gestao:mapa_dados' %}?dias={{ dias }}{% if secretaria_sel %}&amp;secretaria={{ secretaria_sel.pk }}{% endif %}"
+     data-contador="contador-mapa" role="application" aria-label="Mapa das solicitações"></div>
+<p class="suave" id="contador-mapa" aria-live="polite">Carregando...</p>
+<p class="suave">O mapa mostra só as solicitações em que o cidadão marcou o local. Clique num ponto para abrir. Nenhum dado pessoal do cidadão é enviado para o mapa.</p>
+{% endblock %}
+{% block scripts %}
+<script src="{% static 'vendor/leaflet/leaflet.js' %}"></script>
+<script src="{% static 'atendimento/js/mapa.js' %}"></script>
+{% endblock %}

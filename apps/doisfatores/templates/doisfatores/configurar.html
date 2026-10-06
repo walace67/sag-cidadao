@@ -1,0 +1,26 @@
+{% extends "atendimento/base.html" %}
+{% block titulo %}Configurar verificação em duas etapas{% endblock %}
+{% block conteudo %}
+<h1>{% if trocando %}Trocar o aplicativo autenticador{% else %}Configurar a verificação em duas etapas{% endif %}</h1>
+{% if obrigatorio and not trocando %}<p class="suave">Obrigatório para a equipe da prefeitura: além da senha, cada entrada vai pedir um código que muda a cada 30 segundos.</p>{% endif %}
+<div class="duas-colunas">
+  <div class="card">
+    <h2 style="margin-top:0">1. Instale um aplicativo autenticador</h2>
+    <p>Google Authenticator, Microsoft Authenticator, FreeOTP ou 2FAS. Todos são gratuitos.</p>
+    <h2>2. Escaneie o QR code</h2>
+    <div class="qr" aria-hidden="true">{{ qr|safe }}</div>
+    <p class="suave">Não consegue escanear? Digite esta chave no aplicativo (tipo: baseado em tempo):</p>
+    <p><code class="chave">{{ segredo }}</code></p>
+  </div>
+  <div class="card">
+    <h2 style="margin-top:0">3. Confirme com o código</h2>
+    <p>Digite o código de 6 dígitos que o aplicativo mostra agora.</p>
+    <form method="post">
+      {% csrf_token %}
+      {{ form.codigo.label_tag }} {{ form.codigo }} {{ form.codigo.errors }}
+      <p><button class="btn" type="submit">Ativar</button></p>
+    </form>
+    <p class="suave">A chave é secreta: não compartilhe nem tire foto desta tela. Ela fica guardada cifrada no servidor.</p>
+  </div>
+</div>
+{% endblock %}

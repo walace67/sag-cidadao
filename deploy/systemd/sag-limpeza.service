@@ -9,3 +9,5 @@ User=sag
 WorkingDirectory=/srv/sag_cidadao
 ExecStart=/srv/sag_cidadao/.venv/bin/python manage.py limpar_cadastros_pendentes
 ExecStart=/srv/sag_cidadao/.venv/bin/python manage.py clearsessions
+# Resultados de tarefas concluídas há mais de 30 dias
+ExecStart=/srv/sag_cidadao/.venv/bin/python manage.py prune_db_task_results --min-age-days 30

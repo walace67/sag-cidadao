@@ -1,0 +1,19 @@
+Olá, {{ nome }}.
+
+Recebemos sua solicitação no SAG-Cidadão.
+
+Serviço: {{ s.categoria.nome }}
+Bairro: {{ s.bairro.nome }}
+Endereço de referência: {{ s.endereco_referencia }}
+Protocolo: {{ s.protocolo }}
+
+Prazo de atendimento: {{ s.categoria.prazo_dias }} dia{{ s.categoria.prazo_dias|pluralize }}.
+Você receberá um aviso a cada mudança de situação.
+
+Acompanhe em: {{ link }}
+Consulta pública pelo protocolo: {{ consulta }}
+
+Para deixar de receber estes avisos, desmarque a opção em "Meus dados".
+
+Prefeitura de Porto Velho
+Esta mensagem é automática; não responda.

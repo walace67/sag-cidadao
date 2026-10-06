@@ -22,7 +22,8 @@
   {% for s in solicitacoes %}
     <tr>
       <td><a href="{% url 'atendimento:consulta' %}?protocolo={{ s.protocolo }}">{{ s.protocolo|stringformat:"s"|slice:":8"|upper }}</a></td>
-      <td>{{ s.categoria.nome }} <span class="suave">({{ s.categoria.secretaria.sigla }})</span></td>
+      <td>{{ s.categoria.nome }} <span class="suave">({{ s.categoria.secretaria.sigla }})</span>
+        {% for f in s.fotos.all %}<a class="suave" href="{% url 'atendimento:foto' f.pk %}" target="_blank" rel="noopener" title="{{ f.get_etapa_display }}">[foto {{ forloop.counter }}]</a> {% endfor %}</td>
       <td>{{ s.bairro.nome }}</td>
       <td><span class="badge st-{{ s.status }}">{{ s.get_status_display }}</span></td>
       <td>{{ s.criado_em|date:"d/m/Y H:i" }}</td>

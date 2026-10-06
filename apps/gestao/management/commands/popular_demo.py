@@ -127,7 +127,7 @@ class Command(BaseCommand):
             u = User.objects.create_user(username=cpf, password=SENHA, first_name=nome, last_name=sobrenome,
                                          email=f"cidadao{i}{DOMINIO}")
             cidadaos.append(Cidadao.objects.create(usuario=u, cpf=cpf, nome_completo=f"{nome} {sobrenome}",
-                                                   bairro=rng.choice(bairros), termo_aceito_em=agora,
+                                                   bairro=rng.choice(bairros), termo_aceito_em=agora, receber_avisos=False,
                                                    email_confirmado_em=agora))
 
         # Solicitações com histórico coerente e datas espalhadas no período
@@ -140,11 +140,18 @@ class Command(BaseCommand):
             # Mais solicitações nos dias recentes (crescimento do uso)
             idade = min(dias - 0.01, rng.expovariate(1 / (dias / 2.5)))
             aberta_em = agora - timedelta(days=idade, hours=rng.randint(0, 10))
+            # 70% com ponto no mapa, espalhados pela área urbana (aproximada).
+            # Latitude e longitude juntas: o CHECK do banco exige as duas.
+            ponto = {}
+            if rng.random() < 0.7:
+                ponto = {"latitude": round(-8.76 + rng.uniform(-0.05, 0.04), 6),
+                         "longitude": round(-63.88 + rng.uniform(-0.06, 0.05), 6)}
             s = Solicitacao.objects.create(
                 cidadao=cid, categoria=cat, bairro=rng.choice(bairros),
                 descricao=DESCRICOES.get(cat.nome, "Problema relatado pelo cidadão."),
                 endereco_referencia=f"Rua {rng.choice(SOBRENOMES)}, {rng.randint(10, 2000)}",
                 prioridade=rng.choices([1, 2, 3], weights=[2, 5, 2])[0],
+                **ponto,
             )
             eventos = [(aberta_em, "ABE", "ABE", cid.usuario, "Solicitação aberta pelo cidadão.")]
             t = aberta_em

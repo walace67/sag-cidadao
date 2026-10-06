@@ -157,7 +157,7 @@ def detalhe(request, pk):
                 messages.success(request, "Prioridade atualizada.")
                 return redirect("atendimento:detalhe", pk=solicitacao.pk)
         elif acao == "status" and pode_status:
-            form = AlterarStatusForm(request.POST, status_atual=solicitacao.status)
+            form = AlterarStatusForm(request.POST, request.FILES, status_atual=solicitacao.status)
             if form.is_valid():
                 try:
                     services.alterar_status(
@@ -166,6 +166,7 @@ def detalhe(request, pk):
                         usuario=request.user,
                         observacao=form.cleaned_data["observacao"],
                         responsavel=servidor,
+                        fotos=form.cleaned_data["foto"],
                     )
                 except services.TransicaoInvalida as erro:
                     messages.error(request, str(erro))
@@ -186,6 +187,7 @@ def detalhe(request, pk):
             "pode_status": pode_status,
             "pode_prioridade": pode_prioridade,
             "historico": services.historico(solicitacao),
+            "fotos": list(solicitacao.fotos.all()),
             "data_limite": services.data_limite(solicitacao),
             "atrasada": services.esta_atrasada(solicitacao),
         },
@@ -201,11 +203,13 @@ def nova_solicitacao(request):
     cidadao = _cidadao_ou_403(request)
 
     if request.method == "POST":
-        form = NovaSolicitacaoForm(request.POST)
+        form = NovaSolicitacaoForm(request.POST, request.FILES)
         if form.is_valid():
             # O cidadão vem da SESSÃO (request.user), nunca do formulário:
             # assim ninguém abre solicitação em nome de outra pessoa.
-            solicitacao = services.abrir_solicitacao(cidadao=cidadao, **form.cleaned_data)
+            dados = dict(form.cleaned_data)
+            fotos = dados.pop("fotos")
+            solicitacao = services.abrir_solicitacao(cidadao=cidadao, fotos=fotos, **dados)
             messages.success(
                 request, f"Solicitação registrada. Protocolo: {solicitacao.protocolo}"
             )
@@ -214,13 +218,13 @@ def nova_solicitacao(request):
         # Sugere o bairro do cidadão (pode ser alterado)
         form = NovaSolicitacaoForm(initial={"bairro": cidadao.bairro})
 
-    return render(request, "atendimento/nova.html", {"form": form})
+    return render(request, "atendimento/nova.html", {"form": form, "mapa": _config_mapa()})
 
 
 @login_required
 def minhas_solicitacoes(request):
     cidadao = _cidadao_ou_403(request)
-    solicitacoes = list(services.solicitacoes_do_cidadao(cidadao))
+    solicitacoes = list(services.solicitacoes_do_cidadao(cidadao).prefetch_related("fotos"))
     for s in solicitacoes:
         # A tela só mostra o botão; quem decide de verdade é o serviço.
         s.cancelavel = services.pode_cancelar(s)
@@ -300,3 +304,48 @@ def relatorio(request):
             "total_geral": total_geral,
         },
     )
+
+
+# ---------------------------------------------------------------------------
+# Fotos: entregues só a quem pode ver a solicitação
+# ---------------------------------------------------------------------------
+def _config_mapa():
+    from django.conf import settings
+
+    return {"centro": settings.MAPA_CENTRO, "zoom": 13, "limites": settings.MAPA_LIMITES}
+
+
+@login_required
+def foto(request, pk):
+    """
+    As fotos NÃO ficam numa pasta pública: podem mostrar a casa ou o rosto
+    de alguém. Cada pedido passa por aqui e é autorizado como a própria
+    solicitação: o cidadão autor, o servidor da secretaria ou o gestor.
+    Fora disso, 404 (sem revelar que a foto existe).
+
+    Em produção, o Python só AUTORIZA: o cabeçalho X-Accel-Redirect manda
+    o Nginx entregar o arquivo, que é muito mais eficiente.
+    """
+    from django.conf import settings
+    from django.http import FileResponse, HttpResponse
+
+    from .models import FotoSolicitacao
+
+    f = FotoSolicitacao.objects.select_related("solicitacao__categoria", "solicitacao__cidadao").filter(pk=pk).first()
+    if f is None:
+        raise Http404
+    s = f.solicitacao
+    autor = s.cidadao.usuario_id == request.user.pk
+    servidor = getattr(request.user, "servidor", None) if hasattr(request.user, "servidor") else None
+    da_secretaria = servidor is not None and servidor.secretaria_id == s.categoria.secretaria_id
+    if not (autor or da_secretaria or eh_gestor(request.user)):
+        raise Http404
+
+    if settings.SERVIR_MIDIA_COM_NGINX:
+        resposta = HttpResponse(content_type="image/jpeg")
+        resposta["X-Accel-Redirect"] = "/midia-protegida/" + f.arquivo.name
+    else:
+        resposta = FileResponse(f.arquivo.open("rb"), content_type="image/jpeg")
+    resposta["Cache-Control"] = "private, max-age=3600"  # nunca em cache compartilhado
+    resposta["Content-Disposition"] = "inline"
+    return resposta

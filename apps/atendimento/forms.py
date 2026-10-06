@@ -42,8 +42,11 @@ class MeusDadosForm(forms.ModelForm):
 
     class Meta:
         model = Cidadao
-        fields = ["telefone", "bairro"]
-        labels = {"telefone": "Telefone", "bairro": "Bairro onde mora"}
+        fields = ["telefone", "bairro", "receber_avisos"]
+        labels = {
+            "telefone": "Telefone", "bairro": "Bairro onde mora",
+            "receber_avisos": "Quero receber por e-mail os avisos de andamento das minhas solicitações",
+        }
 
     def clean_telefone(self):
         return so_digitos(self.cleaned_data.get("telefone"))
@@ -101,6 +104,28 @@ class CadastroCidadaoForm(forms.Form):
         return dados
 
 
+class VariosArquivosInput(forms.ClearableFileInput):
+    allow_multiple_selected = True
+
+
+class FotosField(forms.FileField):
+    """Campo que aceita vários arquivos e devolve as fotos já tratadas."""
+
+    def __init__(self, *args, maximo=3, **kwargs):
+        self.maximo = maximo
+        kwargs.setdefault("widget", VariosArquivosInput(attrs={"accept": "image/jpeg,image/png,image/webp"}))
+        kwargs.setdefault("required", False)
+        super().__init__(*args, **kwargs)
+
+    def clean(self, data, initial=None):
+        from .imagens import processar_foto
+
+        arquivos = [a for a in (data if isinstance(data, (list, tuple)) else [data]) if a]
+        if len(arquivos) > self.maximo:
+            raise forms.ValidationError(f"Envie no máximo {self.maximo} foto{'s' if self.maximo > 1 else ''}.")
+        return [processar_foto(a) for a in arquivos]
+
+
 class NovaSolicitacaoForm(forms.ModelForm):
     """Usado pelo cidadão para abrir uma solicitação (RF02)."""
 
@@ -109,13 +134,19 @@ class NovaSolicitacaoForm(forms.ModelForm):
         # Lista explícita de campos: o cidadão NÃO pode enviar status,
         # prioridade ou responsável, mesmo editando o HTML no navegador.
         # (Proteção contra "mass assignment".)
-        fields = ["categoria", "bairro", "endereco_referencia", "descricao"]
+        fields = ["categoria", "bairro", "endereco_referencia", "descricao", "latitude", "longitude"]
         labels = {
             "categoria": "Tipo de serviço",
             "endereco_referencia": "Endereço ou ponto de referência",
             "descricao": "Descreva o problema",
         }
-        widgets = {"descricao": forms.Textarea(attrs={"rows": 4})}
+        widgets = {
+            "descricao": forms.Textarea(attrs={"rows": 4}),
+            "latitude": forms.HiddenInput(),
+            "longitude": forms.HiddenInput(),
+        }
+
+    fotos = FotosField(label="Fotos do problema (até 3, opcional)", maximo=3)
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -138,6 +169,20 @@ class NovaSolicitacaoForm(forms.ModelForm):
             raise forms.ValidationError("Descreva o problema com pelo menos 15 caracteres.")
         return texto
 
+    def clean(self):
+        """Validação que envolve DOIS campos: método clean() do formulário."""
+        from django.conf import settings
+
+        dados = super().clean()
+        lat, lng = dados.get("latitude"), dados.get("longitude")
+        if (lat is None) != (lng is None):
+            raise forms.ValidationError("Marque o ponto no mapa novamente.")
+        if lat is not None:
+            sul, norte, oeste, leste = settings.MAPA_LIMITES
+            if not (sul <= lat <= norte and oeste <= lng <= leste):
+                raise forms.ValidationError("O ponto marcado fica fora do município. Confira o mapa.")
+        return dados
+
 
 class AlterarStatusForm(forms.Form):
     """Usado pelo servidor na tela de detalhe (RF05)."""
@@ -146,6 +191,7 @@ class AlterarStatusForm(forms.Form):
     observacao = forms.CharField(
         label="Observação", required=False, widget=forms.Textarea(attrs={"rows": 2})
     )
+    foto = FotosField(label="Foto do serviço (opcional)", maximo=1)
 
     def __init__(self, *args, status_atual, **kwargs):
         super().__init__(*args, **kwargs)
