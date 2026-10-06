@@ -1,6 +1,6 @@
 # SAG-Cidadão
 
-![Testes](https://github.com/SEU_USUARIO/sag-cidadao/actions/workflows/testes.yml/badge.svg)
+![Testes](https://github.com/walace67/sag-cidadao/actions/workflows/testes.yml/badge.svg)
 
 **Sistema de Atendimento e Gestão de Solicitações ao Cidadão.** Com ele, o morador registra um problema urbano (buraco, iluminação, lixo), acompanha o andamento pelo número de protocolo, e cada secretaria municipal trata as solicitações da sua área. O gestor acompanha tudo por um dashboard de indicadores.
 
@@ -62,7 +62,7 @@ As telas e a API chamam os **mesmos** serviços, então uma regra nunca fica dup
 ## Como rodar (desenvolvimento)
 
 ```bash
-git clone https://github.com/SEU_USUARIO/sag-cidadao.git
+git clone https://github.com/walace67/sag-cidadao.git
 cd sag-cidadao
 python3 -m venv .venv && source .venv/bin/activate
 pip install -r requirements.txt
