@@ -1,0 +1,44 @@
+{% extends "atendimento/base.html" %}
+{% block titulo %}Painel{% endblock %}
+{% block conteudo %}
+<h1>Solicitações · {% if secretaria %}{{ secretaria.sigla }}{% else %}todas as secretarias{% endif %}</h1>
+
+<form method="get" class="card filtros{% if filtro.secretaria %} filtros-5{% endif %}">
+  {% if filtro.secretaria %}<div>{{ filtro.secretaria.label_tag }} {{ filtro.secretaria }}</div>{% endif %}
+  <div>{{ filtro.status.label_tag }} {{ filtro.status }}</div>
+  <div>{{ filtro.bairro.label_tag }} {{ filtro.bairro }}</div>
+  <div>{{ filtro.busca.label_tag }} {{ filtro.busca }}</div>
+  <div><button class="btn" type="submit">Filtrar</button></div>
+</form>
+
+<table>
+  <thead>
+    <tr><th>Protocolo</th>{% if not secretaria %}<th>Secretaria</th>{% endif %}<th>Categoria</th><th>Bairro</th><th>Cidadão</th><th>Prioridade</th><th>Status</th><th>Aberta em</th></tr>
+  </thead>
+  <tbody>
+  {% for s in pagina %}
+    <tr>
+      <td><a href="{% url 'atendimento:detalhe' s.pk %}">{{ s.protocolo|stringformat:"s"|slice:":8"|upper }}</a></td>
+      {% if not secretaria %}<td>{{ s.categoria.secretaria.sigla }}</td>{% endif %}
+      <td>{{ s.categoria.nome }}</td>
+      <td>{{ s.bairro.nome }}</td>
+      <td>{{ s.cidadao.nome_completo }}</td>
+      <td>{{ s.get_prioridade_display }}</td>
+      <td><span class="badge st-{{ s.status }}">{{ s.get_status_display }}</span>
+          {% if s.atrasada %}<div class="atraso">Prazo vencido</div>{% endif %}</td>
+      <td>{{ s.criado_em|date:"d/m/Y H:i" }}</td>
+    </tr>
+  {% empty %}
+    <tr><td colspan="8" class="suave">Nenhuma solicitação encontrada.</td></tr>
+  {% endfor %}
+  </tbody>
+</table>
+
+{% if pagina.has_other_pages %}
+<div class="paginacao">
+  {% if pagina.has_previous %}<a class="btn sec" href="?{{ querystring }}&page={{ pagina.previous_page_number }}">Anterior</a>{% endif %}
+  <span class="suave">Página {{ pagina.number }} de {{ pagina.paginator.num_pages }}</span>
+  {% if pagina.has_next %}<a class="btn sec" href="?{{ querystring }}&page={{ pagina.next_page_number }}">Próxima</a>{% endif %}
+</div>
+{% endif %}
+{% endblock %}

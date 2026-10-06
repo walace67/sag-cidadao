@@ -1,0 +1,188 @@
+{% extends "atendimento/base.html" %}
+{% load l10n %}
+{% block titulo %}Dashboard{% endblock %}
+{% block conteudo %}
+<style>
+  .dash { --serie:#2a78d6; --serie-forte:#1f5fae; --grade:#e3e8ef; --critico:#b3261e; --critico-fundo:#fbe9e7; --bom:#1e6b3a; }
+  .dash-topo { display:flex; justify-content:space-between; align-items:flex-end; gap:16px; flex-wrap:wrap; margin-bottom:16px; }
+  .dash-topo h1 { margin:0 0 4px; }
+  .dash-filtros { display:flex; gap:12px; align-items:center; flex-wrap:wrap; }
+  .segmentado { display:inline-flex; border:1px solid var(--borda); border-radius:8px; overflow:hidden; background:#fff; }
+  .segmentado a { padding:7px 14px; font-size:14px; text-decoration:none; color:var(--texto); border-right:1px solid var(--borda); }
+  .segmentado a:last-child { border-right:0; }
+  .segmentado a[aria-current] { background:var(--azul); color:#fff; }
+  .dash-filtros select { width:auto; min-width:200px; }
+  .kpis { display:grid; grid-template-columns:repeat(6, 1fr); gap:12px; margin-bottom:16px; }
+  .kpi { background:#fff; border:1px solid var(--borda); border-radius:10px; padding:14px 16px; }
+  .kpi .rotulo { font-size:13px; color:var(--suave); }
+  .kpi .valor { font-size:28px; font-weight:700; margin-top:6px; font-variant-numeric:tabular-nums; }
+  .kpi .nota { font-size:12px; color:var(--suave); margin-top:2px; }
+  .kpi.critico { border-color:#f1c4bf; background:var(--critico-fundo); }
+  .kpi.critico .valor { color:var(--critico); }
+  .grade-2 { display:grid; grid-template-columns:1fr 1fr; gap:16px; }
+  .painel { background:#fff; border:1px solid var(--borda); border-radius:10px; padding:18px 20px; margin-bottom:16px; }
+  .painel h2 { margin:0 0 4px; font-size:16px; }
+  .painel .sub { color:var(--suave); font-size:13px; margin:0 0 14px; }
+  .barras { display:grid; grid-template-columns:minmax(110px, max-content) 1fr 40px; gap:8px 12px; align-items:center; font-size:14px; }
+  .barras .trilho { background:#f1f4f8; border-radius:4px; height:14px; }
+  .barras .barra { background:var(--serie); height:14px; border-radius:0 4px 4px 0; min-width:2px; transition:background .15s; }
+  .barras .barra:hover { background:var(--serie-forte); }
+  .barras .num { text-align:right; font-variant-numeric:tabular-nums; color:var(--texto); }
+  .barras .vazio { background:transparent; }
+  svg.linha text { font-size:11px; fill:var(--suave); }
+  svg.linha .alvo { fill:transparent; cursor:default; }
+  svg.linha .alvo:hover + .ponto { r:5; }
+  details.tabela-dados { margin-top:12px; font-size:13px; }
+  details.tabela-dados summary { cursor:pointer; color:var(--azul); }
+  .estado-critico { color:var(--critico); font-weight:600; white-space:nowrap; }
+  .pct-bom { color:var(--bom); font-weight:600; }
+  @media (max-width:900px) { .kpis { grid-template-columns:repeat(3, 1fr); } .grade-2 { grid-template-columns:1fr; } }
+  @media (max-width:520px) { .kpis { grid-template-columns:repeat(2, 1fr); } }
+</style>
+
+<div class="dash">
+  {% include "gestao/_abas.html" with ativa="dashboard" %}
+
+  <div class="dash-topo">
+    <div>
+      <h1>Painel de gestão</h1>
+      <div class="suave">{% if secretaria_sel %}{{ secretaria_sel.nome }}{% else %}Todas as secretarias{% endif %} · {% for d, rotulo in periodos %}{% if d == dias %}{% if d %}últimos {{ rotulo }}{% else %}todo o período{% endif %}{% endif %}{% endfor %}</div>
+    </div>
+    <form method="get" class="dash-filtros">
+      <div class="segmentado" role="group" aria-label="Período">
+        {% for d, rotulo in periodos %}
+          <a href="?dias={{ d }}{% if secretaria_sel %}&secretaria={{ secretaria_sel.pk }}{% endif %}" {% if d == dias %}aria-current="true"{% endif %}>{{ rotulo }}</a>
+        {% endfor %}
+      </div>
+      <input type="hidden" name="dias" value="{{ dias }}">
+      <select name="secretaria" aria-label="Secretaria" data-autoenvio>
+        <option value="">Todas as secretarias</option>
+        {% for sec in secretarias %}<option value="{{ sec.pk }}" {% if secretaria_sel.pk == sec.pk %}selected{% endif %}>{{ sec.sigla }} — {{ sec.nome }}</option>{% endfor %}
+      </select>
+      <noscript><button class="btn btn-peq" type="submit">Aplicar</button></noscript>
+    </form>
+  </div>
+
+  {# ---------- Indicadores principais ---------- #}
+  <div class="kpis">
+    <div class="kpi"><div class="rotulo">Solicitações</div><div class="valor">{{ k.total }}</div><div class="nota">abertas no período</div></div>
+    <div class="kpi"><div class="rotulo">Em andamento</div><div class="valor">{{ k.andamento }}</div><div class="nota">aberta, análise ou execução</div></div>
+    <div class="kpi"><div class="rotulo">Concluídas</div><div class="valor">{{ k.concluidas }}</div><div class="nota">{{ k.canceladas }} indeferida{{ k.canceladas|pluralize }} ou cancelada{{ k.canceladas|pluralize }}</div></div>
+    <div class="kpi"><div class="rotulo">Concluídas no prazo</div><div class="valor">{% if k.pct_no_prazo is not None %}{{ k.pct_no_prazo }}%{% else %}—{% endif %}</div><div class="nota">{{ k.concluidas_no_prazo }} de {{ k.concluidas }}</div></div>
+    <div class="kpi"><div class="rotulo">Tempo médio de atendimento</div><div class="valor">{{ k.tempo_medio_txt }}</div><div class="nota">da abertura à conclusão</div></div>
+    <div class="kpi {% if k.atrasadas %}critico{% endif %}"><div class="rotulo">Fora do prazo</div><div class="valor">{{ k.atrasadas }}</div><div class="nota">{% if k.atrasadas %}⚠ em andamento e vencidas{% else %}nenhuma vencida{% endif %}</div></div>
+  </div>
+
+  {# ---------- Evolução diária (SVG gerado no servidor) ---------- #}
+  <div class="painel">
+    <h2>Solicitações abertas por dia</h2>
+    <p class="sub">Últimos {{ linha.pontos|length }} dias · passe o mouse sobre os pontos para ver cada dia</p>
+    {# localize off: coordenadas com ponto decimal (12.5), não vírgula (12,5) #}
+    {% localize off %}
+    <svg class="linha" viewBox="0 0 {{ linha.largura }} {{ linha.altura }}" width="100%" role="img" aria-label="Linha com a quantidade de solicitações abertas por dia">
+      {% for m in linha.marcas_y %}
+        <line x1="{{ linha.x0 }}" x2="{{ linha.x1 }}" y1="{{ m.y }}" y2="{{ m.y }}" stroke="var(--grade)" stroke-width="1"/>
+        <text x="{{ linha.x0|add:'-8' }}" y="{{ m.y }}" text-anchor="end" dominant-baseline="middle">{{ m.valor }}</text>
+      {% endfor %}
+      {% for p in linha.marcas_x %}
+        <text x="{{ p.x }}" y="{{ linha.altura|add:'-6' }}" text-anchor="middle">{{ p.dia|date:"d/m" }}</text>
+      {% endfor %}
+      <path d="{{ linha.area }}" fill="var(--serie)" fill-opacity="0.08"/>
+      <path d="{{ linha.caminho }}" fill="none" stroke="var(--serie)" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
+      {% for p in linha.pontos %}
+        <circle class="alvo" cx="{{ p.x }}" cy="{{ p.y }}" r="9"><title>{{ p.dia|date:"d/m/Y" }}: {{ p.valor }} solicitaç{{ p.valor|pluralize:"ão,ões" }}</title></circle>
+        <circle class="ponto" cx="{{ p.x }}" cy="{{ p.y }}" r="{% if p.valor %}3{% else %}0{% endif %}" fill="var(--serie)" stroke="#fff" stroke-width="1.5" pointer-events="none"/>
+      {% endfor %}
+    </svg>
+    {% endlocalize %}
+    <details class="tabela-dados"><summary>Ver como tabela</summary>
+      <table><thead><tr><th>Dia</th><th class="num">Solicitações</th></tr></thead><tbody>
+      {% for p in linha.pontos %}<tr><td>{{ p.dia|date:"d/m/Y" }}</td><td class="num">{{ p.valor }}</td></tr>{% endfor %}
+      </tbody></table>
+    </details>
+  </div>
+
+  <div class="grade-2">
+    <div class="painel">
+      <h2>Por situação</h2>
+      <p class="sub">Status atual das solicitações do período</p>
+      <div class="barras">
+        {% for b in por_status %}
+          <div>{{ b.rotulo }}</div>
+          <div class="trilho"><div class="barra{% if not b.valor %} vazio{% endif %}" style="width:{{ b.pct|stringformat:'s' }}%" title="{{ b.rotulo }}: {{ b.valor }}"></div></div>
+          <div class="num">{{ b.valor }}</div>
+        {% endfor %}
+      </div>
+    </div>
+    <div class="painel">
+      <h2>Por zona da cidade</h2>
+      <p class="sub">Onde os problemas foram registrados</p>
+      <div class="barras">
+        {% for b in por_zona %}
+          <div>{{ b.rotulo }}</div>
+          <div class="trilho"><div class="barra{% if not b.valor %} vazio{% endif %}" style="width:{{ b.pct|stringformat:'s' }}%" title="{{ b.rotulo }}: {{ b.valor }}"></div></div>
+          <div class="num">{{ b.valor }}</div>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+
+  <div class="grade-2">
+    <div class="painel">
+      <h2>Serviços mais pedidos</h2>
+      <p class="sub">As 5 categorias com mais solicitações</p>
+      {% if top_categorias %}
+      <div class="barras">
+        {% for b in top_categorias %}
+          <div>{{ b.rotulo }} <span class="suave">({{ b.sigla }})</span></div>
+          <div class="trilho"><div class="barra" style="width:{{ b.pct|stringformat:'s' }}%" title="{{ b.rotulo }}: {{ b.valor }}"></div></div>
+          <div class="num">{{ b.valor }}</div>
+        {% endfor %}
+      </div>
+      {% else %}<p class="suave">Sem solicitações no período.</p>{% endif %}
+    </div>
+    <div class="painel">
+      <h2>Fila crítica</h2>
+      <p class="sub">Em andamento com prazo vencido, das mais atrasadas para as menos</p>
+      {% if vencidas %}
+      <table>
+        <thead><tr><th>Protocolo</th><th>Serviço</th><th>Bairro</th><th>Atraso</th></tr></thead>
+        <tbody>
+        {% for s in vencidas %}
+          <tr>
+            <td><a href="{% url 'atendimento:detalhe' s.pk %}">{{ s.protocolo|stringformat:"s"|slice:":8"|upper }}</a></td>
+            <td>{{ s.categoria.nome }} <span class="suave">({{ s.categoria.secretaria.sigla }})</span></td>
+            <td>{{ s.bairro.nome }}</td>
+            <td class="estado-critico">⚠ {{ s.dias_atraso }} dia{{ s.dias_atraso|pluralize }}</td>
+          </tr>
+        {% endfor %}
+        </tbody>
+      </table>
+      {% else %}<p class="suave">Nenhuma solicitação fora do prazo. 👍</p>{% endif %}
+    </div>
+  </div>
+
+  <div class="painel">
+    <h2>Desempenho por secretaria</h2>
+    <p class="sub">Volume, cumprimento de prazo e tempo médio de atendimento</p>
+    <table>
+      <thead><tr><th>Secretaria</th><th class="num">Total</th><th class="num">Em andamento</th><th class="num">Concluídas</th><th class="num">No prazo</th><th class="num">Tempo médio</th><th class="num">Fora do prazo</th></tr></thead>
+      <tbody>
+      {% for l in por_secretaria %}
+        <tr>
+          <td><strong>{{ l.sigla }}</strong></td>
+          <td class="num">{{ l.total }}</td>
+          <td class="num">{{ l.andamento }}</td>
+          <td class="num">{{ l.concluidas }}</td>
+          <td class="num">{% if l.pct_no_prazo is not None %}<span {% if l.pct_no_prazo >= 80 %}class="pct-bom"{% endif %}>{{ l.pct_no_prazo }}%</span>{% else %}—{% endif %}</td>
+          <td class="num">{{ l.tempo_medio_txt }}</td>
+          <td class="num">{% if l.atrasadas %}<span class="estado-critico">⚠ {{ l.atrasadas }}</span>{% else %}0{% endif %}</td>
+        </tr>
+      {% empty %}
+        <tr><td colspan="7" class="suave">Sem solicitações no período.</td></tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

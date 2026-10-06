@@ -1,0 +1,11 @@
+# Tarefa de retenção (LGPD): apaga cadastros não confirmados há mais de 24 h.
+# É disparada pelo sag-limpeza.timer; não precisa habilitar este arquivo.
+[Unit]
+Description=SAG-Cidadão: limpar cadastros pendentes (LGPD)
+
+[Service]
+Type=oneshot
+User=sag
+WorkingDirectory=/srv/sag_cidadao
+ExecStart=/srv/sag_cidadao/.venv/bin/python manage.py limpar_cadastros_pendentes
+ExecStart=/srv/sag_cidadao/.venv/bin/python manage.py clearsessions

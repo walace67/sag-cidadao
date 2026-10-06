@@ -1,0 +1,36 @@
+{% extends "atendimento/base.html" %}
+{% load gestao_tags %}
+{% block titulo %}Cidadãos{% endblock %}
+{% block conteudo %}
+{% include "gestao/_abas.html" with ativa="cidadaos" %}
+<div class="cabecalho-lista"><h1>Cidadãos</h1></div>
+<form method="get" class="busca">
+  <input type="search" name="q" value="{{ q }}" placeholder="Nome, bairro ou CPF completo" aria-label="Buscar">
+  <button class="btn sec" type="submit">Buscar</button>
+  {% if q %}<a href="{% url 'gestao:cidadaos' %}">Limpar</a>{% endif %}
+</form>
+<table>
+  <thead><tr><th>Nome</th><th>CPF</th><th>Bairro</th><th>Cadastro</th><th class="num">Solicitações</th><th>Acesso</th><th class="acoes-col">Ações</th></tr></thead>
+  <tbody>
+  {% for c in pagina %}
+    <tr>
+      <td>{{ c.nome_completo }}</td>
+      <td><code>{{ c.cpf|mascara_cpf }}</code></td>
+      <td>{{ c.bairro.nome }}</td>
+      <td>{% if c.pendente %}Aguardando confirmação do e-mail{% elif c.termo_aceito_em %}Autocadastro em {{ c.termo_aceito_em|date:"d/m/Y" }}{% else %}Pela prefeitura{% endif %}</td>
+      <td class="num">{{ c.total }}</td>
+      <td>{% if c.usuario.is_active %}<span class="badge st-CON">Ativo</span>{% elif c.pendente %}<span class="badge st-ANA">Pendente</span>{% else %}<span class="badge st-IND">Bloqueado</span>{% endif %}</td>
+      <td class="acoes-col">
+        {% if not c.pendente %}<form method="post" action="{% url 'gestao:cidadao_alternar' c.pk %}" class="inline">
+          {% csrf_token %}<button class="btn-link {% if c.usuario.is_active %}perigo{% endif %}" type="submit">{% if c.usuario.is_active %}Bloquear{% else %}Desbloquear{% endif %}</button>
+        </form>{% endif %}
+      </td>
+    </tr>
+  {% empty %}
+    <tr><td colspan="7" class="suave">Nenhum cidadão encontrado.</td></tr>
+  {% endfor %}
+  </tbody>
+</table>
+{% include "gestao/_paginacao.html" %}
+<p class="suave">O CPF aparece mascarado (LGPD: minimização). Para localizar alguém pelo CPF, digite o número completo na busca.</p>
+{% endblock %}

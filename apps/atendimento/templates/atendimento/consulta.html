@@ -1,0 +1,32 @@
+{% extends "atendimento/base.html" %}
+{% block titulo %}Consultar protocolo{% endblock %}
+{% block conteudo %}
+<h1>Consultar protocolo</h1>
+<form method="get" class="card" style="max-width:640px">
+  {{ form.protocolo.label_tag }} {{ form.protocolo }} {{ form.protocolo.errors }}
+  <p><button class="btn" type="submit">Consultar</button></p>
+</form>
+
+{% if s %}
+{# Página pública: sem nome, CPF ou descrição do cidadão (LGPD) #}
+<div class="card">
+  <h2 style="margin-top:0">{{ s.categoria.nome }} <span class="badge st-{{ s.status }}">{{ s.get_status_display }}</span></h2>
+  <dl class="grade">
+    <dt>Bairro</dt><dd>{{ s.bairro }}</dd>
+    <dt>Aberta em</dt><dd>{{ s.criado_em|date:"d/m/Y H:i" }}</dd>
+    {% if s.concluida_em %}<dt>Concluída em</dt><dd>{{ s.concluida_em|date:"d/m/Y H:i" }}</dd>{% endif %}
+  </dl>
+</div>
+<h2>Andamento</h2>
+<table>
+  <thead><tr><th>Data</th><th>Situação</th><th>Observação</th></tr></thead>
+  <tbody>
+  {% for h in historico %}
+    <tr><td>{{ h.registrado_em|date:"d/m/Y H:i" }}</td><td>{{ h.get_status_novo_display }}</td><td>{{ h.observacao|default:"—" }}</td></tr>
+  {% empty %}
+    <tr><td colspan="3" class="suave">Sem movimentações registradas.</td></tr>
+  {% endfor %}
+  </tbody>
+</table>
+{% endif %}
+{% endblock %}

@@ -1,0 +1,23 @@
+{% extends "atendimento/base.html" %}
+{% block titulo %}{{ cad.titulo }}{% endblock %}
+{% block conteudo %}
+{% include "gestao/_abas.html" with ativa=tipo %}
+<p><a href="{% url 'gestao:cadastro_lista' tipo %}">&larr; {{ cad.titulo }}</a></p>
+<h1>{% if objeto %}Editar {{ cad.singular }}{% else %}Nova {{ cad.singular }}{% endif %}</h1>
+<div class="card" style="max-width:560px">
+  <form method="post" novalidate>
+    {% csrf_token %}
+    {{ form.non_field_errors }}
+    {% for campo in form %}
+      {% if campo.widget_type == "checkbox" %}
+        <label class="check">{{ campo }} <span>{{ campo.label }}</span></label>
+      {% else %}
+        {{ campo.label_tag }} {{ campo }}
+      {% endif %}
+      {% if campo.help_text %}<div class="suave">{{ campo.help_text }}</div>{% endif %}
+      {{ campo.errors }}
+    {% endfor %}
+    <p><button class="btn" type="submit">Salvar</button> <a class="btn sec" href="{% url 'gestao:cadastro_lista' tipo %}">Cancelar</a></p>
+  </form>
+</div>
+{% endblock %}

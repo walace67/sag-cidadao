@@ -1,0 +1,28 @@
+# ---- Segredos: NUNCA vão para o Git ----
+.env
+.env.*
+!.env.example
+
+# ---- Ambiente e caches do Python ----
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+
+# ---- Dados locais (podem conter dados pessoais: LGPD) ----
+db.sqlite3*
+*.backup
+dados.json
+*.dump
+*.sql
+backups/
+
+# ---- Gerados ----
+staticfiles/
+*.log
+*.zip
+
+# ---- Editores e sistema ----
+.vscode/
+.idea/
+.DS_Store

@@ -1,0 +1,19 @@
+# Agenda a limpeza diária às 3h (equivalente moderno do cron).
+#
+#   sudo cp deploy/systemd/sag-limpeza.* /etc/systemd/system/
+#   sudo systemctl daemon-reload
+#   sudo systemctl enable --now sag-limpeza.timer
+#   systemctl list-timers sag-limpeza.timer     # próxima execução
+#
+# Alternativa com cron (crontab -e do usuário sag):
+#   0 3 * * * cd /srv/sag_cidadao && .venv/bin/python manage.py limpar_cadastros_pendentes
+
+[Unit]
+Description=Limpeza diária do SAG-Cidadão
+
+[Timer]
+OnCalendar=*-*-* 03:00:00
+Persistent=true
+
+[Install]
+WantedBy=timers.target

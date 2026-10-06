@@ -1,0 +1,34 @@
+# systemd: mantém o Gunicorn rodando, sobe no boot e reinicia se cair.
+#
+#   sudo cp deploy/systemd/sag-cidadao.service /etc/systemd/system/
+#   sudo systemctl daemon-reload
+#   sudo systemctl enable --now sag-cidadao
+#   systemctl status sag-cidadao        # situação
+#   journalctl -u sag-cidadao -f        # logs ao vivo
+
+[Unit]
+Description=SAG-Cidadão (Gunicorn + Django)
+After=network.target postgresql.service
+Requires=postgresql.service
+
+[Service]
+Type=notify
+# Usuário próprio, sem shell e sem sudo: princípio do MENOR PRIVILÉGIO.
+# Se o sistema for invadido, o atacante fica preso a esse usuário.
+User=sag
+Group=www-data
+WorkingDirectory=/srv/sag_cidadao
+RuntimeDirectory=sag-cidadao
+ExecStart=/srv/sag_cidadao/.venv/bin/gunicorn -c deploy/gunicorn.conf.py config.wsgi
+ExecReload=/bin/kill -s HUP $MAINPID
+Restart=on-failure
+RestartSec=5
+
+# Endurecimento (hardening) do processo
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=full
+ProtectHome=true
+
+[Install]
+WantedBy=multi-user.target

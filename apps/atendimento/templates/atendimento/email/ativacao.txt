@@ -1,0 +1,10 @@
+{% autoescape off %}Olá, {{ nome }}!
+
+Recebemos o seu cadastro no SAG-Cidadão. Para confirmar o e-mail e ativar a conta, abra o link abaixo (válido por 24 horas):
+
+{{ link }}
+
+Se não foi você, ignore esta mensagem: sem a confirmação, o cadastro é apagado automaticamente.
+
+SAG-Cidadão
+{% endautoescape %}

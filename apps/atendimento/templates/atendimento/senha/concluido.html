@@ -1,0 +1,9 @@
+{% extends "atendimento/base.html" %}
+{% block titulo %}Senha atualizada{% endblock %}
+{% block conteudo %}
+<h1>Senha atualizada</h1>
+<div class="card" style="max-width:520px">
+  <p style="margin-top:0">Sua senha foi alterada com sucesso.</p>
+  <p><a class="btn" href="{% if user.is_authenticated %}{% url 'atendimento:inicio' %}{% else %}{% url 'login' %}{% endif %}">Continuar</a></p>
+</div>
+{% endblock %}

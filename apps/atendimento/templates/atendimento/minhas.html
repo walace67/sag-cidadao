@@ -1,0 +1,96 @@
+{% extends "atendimento/base.html" %}
+{% block titulo %}Minhas solicitações{% endblock %}
+{% block conteudo %}
+<style>
+  /* Janela de confirmação: elemento <dialog> nativo do HTML.
+     O navegador cuida do foco, da tecla Esc e do fundo escurecido. */
+  dialog.confirmar { border:0; border-radius:12px; padding:0; width:min(440px, calc(100% - 32px)); box-shadow:0 12px 40px rgba(0,0,0,.25); color:var(--texto); }
+  dialog.confirmar::backdrop { background:rgba(20,30,45,.45); }
+  .confirmar .corpo { padding:24px 24px 8px; }
+  .confirmar h2 { margin:0 0 8px; font-size:18px; }
+  .confirmar p { margin:0 0 12px; color:var(--suave); font-size:14px; line-height:1.5; }
+  .confirmar .acoes { display:flex; justify-content:flex-end; gap:12px; padding:16px 24px 20px; }
+  .btn.perigo { background:#b3261e; }
+  .confirmar textarea { resize:vertical; }
+</style>
+
+<h1>Minhas solicitações</h1>
+<p><a class="btn" href="{% url 'atendimento:nova' %}">Nova solicitação</a></p>
+<table>
+  <thead><tr><th>Protocolo</th><th>Serviço</th><th>Bairro</th><th>Status</th><th>Aberta em</th><th>Encerrada em</th><th></th></tr></thead>
+  <tbody>
+  {% for s in solicitacoes %}
+    <tr>
+      <td><a href="{% url 'atendimento:consulta' %}?protocolo={{ s.protocolo }}">{{ s.protocolo|stringformat:"s"|slice:":8"|upper }}</a></td>
+      <td>{{ s.categoria.nome }} <span class="suave">({{ s.categoria.secretaria.sigla }})</span></td>
+      <td>{{ s.bairro.nome }}</td>
+      <td><span class="badge st-{{ s.status }}">{{ s.get_status_display }}</span></td>
+      <td>{{ s.criado_em|date:"d/m/Y H:i" }}</td>
+      {# concluida_em para "Concluída"; para os demais finais, a data vem do histórico #}
+      <td>{{ s.concluida_em|default:s.encerrada_em|date:"d/m/Y H:i"|default:"—" }}</td>
+      <td>
+        {% if s.cancelavel %}
+          {# Continua sendo um formulário POST com CSRF. Sem JavaScript, ele #}
+          {# envia direto; com JavaScript, a janela abaixo pede confirmação.  #}
+          <form method="post" action="{% url 'atendimento:cancelar' s.pk %}" class="form-cancelar"
+                data-protocolo="{{ s.protocolo|stringformat:'s'|slice:':8'|upper }}"
+                data-servico="{{ s.categoria.nome }}">
+            {% csrf_token %}
+            <input type="hidden" name="motivo" value="">
+            <button type="submit" class="btn sec btn-peq">Cancelar</button>
+          </form>
+        {% endif %}
+      </td>
+    </tr>
+  {% empty %}
+    <tr><td colspan="7" class="suave">Você ainda não abriu solicitações.</td></tr>
+  {% endfor %}
+  </tbody>
+</table>
+<p class="suave">Só é possível cancelar enquanto a solicitação está "Aberta". Depois que a secretaria começa a análise, o cancelamento não é mais permitido.</p>
+
+<dialog class="confirmar" id="dlg-cancelar" aria-labelledby="dlg-titulo">
+  <div class="corpo">
+    <h2 id="dlg-titulo">Cancelar a solicitação <span id="dlg-protocolo"></span>?</h2>
+    <p><strong id="dlg-servico"></strong>. Depois de cancelada, a solicitação sai da fila da secretaria e não pode ser reaberta.</p>
+    <label for="dlg-motivo">Motivo (opcional)</label>
+    <textarea id="dlg-motivo" rows="3" maxlength="200" placeholder="Ex.: o problema já foi resolvido"></textarea>
+  </div>
+  <div class="acoes">
+    <button type="button" class="btn sec" id="dlg-voltar">Voltar</button>
+    <button type="button" class="btn perigo" id="dlg-confirmar">Sim, cancelar</button>
+  </div>
+</dialog>
+
+<script nonce="{{ csp_nonce }}">
+(() => {
+  const dlg = document.getElementById("dlg-cancelar");
+  const motivo = document.getElementById("dlg-motivo");
+  let formAtual = null;
+
+  // Intercepta o envio de cada formulário de cancelamento e abre a janela
+  document.querySelectorAll(".form-cancelar").forEach((form) => {
+    form.addEventListener("submit", (ev) => {
+      ev.preventDefault();
+      formAtual = form;
+      document.getElementById("dlg-protocolo").textContent = form.dataset.protocolo;
+      document.getElementById("dlg-servico").textContent = form.dataset.servico;
+      motivo.value = "";
+      dlg.showModal();          // modal: bloqueia o resto da página, Esc fecha
+      document.getElementById("dlg-voltar").focus();  // foco no botão seguro
+    });
+  });
+
+  document.getElementById("dlg-voltar").addEventListener("click", () => dlg.close());
+
+  document.getElementById("dlg-confirmar").addEventListener("click", () => {
+    if (!formAtual) return;
+    formAtual.querySelector("input[name=motivo]").value = motivo.value.trim();
+    formAtual.submit();         // envio nativo: não dispara o listener de novo
+  });
+
+  // Clicar no fundo escurecido também fecha
+  dlg.addEventListener("click", (ev) => { if (ev.target === dlg) dlg.close(); });
+})();
+</script>
+{% endblock %}

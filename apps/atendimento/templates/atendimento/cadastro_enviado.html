@@ -1,0 +1,11 @@
+{% extends "atendimento/base.html" %}
+{% block titulo %}Confirme seu e-mail{% endblock %}
+{% block conteudo %}
+<h1>Confira seu e-mail</h1>
+<div class="card" style="max-width:640px; line-height:1.6">
+  {# Esta tela é IDÊNTICA para cadastro novo e CPF já existente (contra enumeração). #}
+  <p style="margin-top:0">Enviamos uma mensagem para <strong>{{ email }}</strong> com as instruções para concluir o cadastro.</p>
+  <p>O link vale por 24 horas. Se a mensagem não chegar em alguns minutos, confira a caixa de spam.</p>
+  <p class="suave">Se você já tem conta, não precisa se cadastrar de novo: <a href="{% url 'login' %}">entre</a> ou <a href="{% url 'password_reset' %}">redefina sua senha</a>.</p>
+</div>
+{% endblock %}

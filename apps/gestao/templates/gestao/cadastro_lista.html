@@ -1,0 +1,36 @@
+{% extends "atendimento/base.html" %}
+{% load gestao_tags %}
+{% block titulo %}{{ cad.titulo }}{% endblock %}
+{% block conteudo %}
+{% include "gestao/_abas.html" with ativa=tipo %}
+<div class="cabecalho-lista">
+  <h1>{{ cad.titulo }}</h1>
+  <a class="btn" href="{% url 'gestao:cadastro_novo' tipo %}">+ Nova {{ cad.singular }}</a>
+</div>
+<form method="get" class="busca">
+  <input type="search" name="q" value="{{ q }}" placeholder="Buscar…" aria-label="Buscar">
+  <button class="btn sec" type="submit">Buscar</button>
+  {% if q %}<a href="{% url 'gestao:cadastro_lista' tipo %}">Limpar</a>{% endif %}
+</form>
+<table>
+  <thead><tr>{% for rotulo, campo in cad.colunas %}<th>{{ rotulo }}</th>{% endfor %}<th class="acoes-col">Ações</th></tr></thead>
+  <tbody>
+  {% for obj in pagina %}
+    <tr>
+      {% for rotulo, campo in cad.colunas %}<td>{{ obj|atributo:campo }}</td>{% endfor %}
+      <td class="acoes-col">
+        <a class="btn sec btn-peq" href="{% url 'gestao:cadastro_editar' tipo obj.pk %}">Editar</a>
+        <form method="post" action="{% url 'gestao:cadastro_excluir' tipo obj.pk %}" class="inline"
+              data-confirmar="Excluir {{ obj }}? Registros vinculados impedem a exclusão.">
+          {% csrf_token %}<button class="btn-link perigo" type="submit">Excluir</button>
+        </form>
+      </td>
+    </tr>
+  {% empty %}
+    <tr><td colspan="{{ cad.colunas|length|add:1 }}" class="suave">Nenhum registro encontrado.</td></tr>
+  {% endfor %}
+  </tbody>
+</table>
+{% include "gestao/_paginacao.html" %}
+{% if cad.dica_exclusao %}<p class="suave">{{ cad.dica_exclusao }}</p>{% endif %}
+{% endblock %}

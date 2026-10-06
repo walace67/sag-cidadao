@@ -1,0 +1,40 @@
+{% extends "atendimento/base.html" %}
+{% block titulo %}Servidores{% endblock %}
+{% block conteudo %}
+{% include "gestao/_abas.html" with ativa="servidores" %}
+<div class="cabecalho-lista">
+  <h1>Servidores</h1>
+  <a class="btn" href="{% url 'gestao:servidor_novo' %}">+ Novo servidor</a>
+</div>
+<form method="get" class="busca">
+  <input type="search" name="q" value="{{ q }}" placeholder="Nome, matrícula ou secretaria" aria-label="Buscar">
+  <button class="btn sec" type="submit">Buscar</button>
+  {% if q %}<a href="{% url 'gestao:servidores' %}">Limpar</a>{% endif %}
+</form>
+<table>
+  <thead><tr><th>Nome</th><th>Login</th><th>Matrícula</th><th>Secretaria</th><th>Papel</th><th class="num">Atendimentos</th><th>Acesso</th><th class="acoes-col">Ações</th></tr></thead>
+  <tbody>
+  {% for s in pagina %}
+    <tr>
+      <td>{{ s.usuario.get_full_name|default:s.usuario.username }}</td>
+      <td>{{ s.usuario.username }}</td>
+      <td>{{ s.matricula }}</td>
+      <td>{{ s.secretaria.sigla }}</td>
+      <td>{% if s.gestor %}Servidor e gestor{% else %}Servidor{% endif %}</td>
+      <td class="num">{{ s.atendidas }}</td>
+      <td>{% if s.usuario.is_active %}<span class="badge st-CON">Ativo</span>{% else %}<span class="badge st-IND">Desativado</span>{% endif %}</td>
+      <td class="acoes-col">
+        <a class="btn sec btn-peq" href="{% url 'gestao:servidor_editar' s.pk %}">Editar</a>
+        <form method="post" action="{% url 'gestao:servidor_alternar' s.pk %}" class="inline">
+          {% csrf_token %}<button class="btn-link {% if s.usuario.is_active %}perigo{% endif %}" type="submit">{% if s.usuario.is_active %}Desativar{% else %}Reativar{% endif %}</button>
+        </form>
+      </td>
+    </tr>
+  {% empty %}
+    <tr><td colspan="8" class="suave">Nenhum servidor encontrado.</td></tr>
+  {% endfor %}
+  </tbody>
+</table>
+{% include "gestao/_paginacao.html" %}
+<p class="suave">Servidores não são excluídos: desativar bloqueia o login e preserva o histórico dos atendimentos.</p>
+{% endblock %}

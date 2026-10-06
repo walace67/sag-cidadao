@@ -1,0 +1,28 @@
+{% extends "atendimento/base.html" %}
+{% block titulo %}Servidor{% endblock %}
+{% block conteudo %}
+{% include "gestao/_abas.html" with ativa="servidores" %}
+<p><a href="{% url 'gestao:servidores' %}">&larr; Servidores</a></p>
+<h1>{% if servidor %}Editar servidor{% else %}Novo servidor{% endif %}</h1>
+<div class="card" style="max-width:640px">
+  <form method="post" novalidate autocomplete="off">
+    {% csrf_token %}
+    {{ form.non_field_errors }}
+    <div class="duas-colunas">
+      <div>{{ form.first_name.label_tag }} {{ form.first_name }} {{ form.first_name.errors }}</div>
+      <div>{{ form.last_name.label_tag }} {{ form.last_name }} {{ form.last_name.errors }}</div>
+    </div>
+    {{ form.email.label_tag }} {{ form.email }} {{ form.email.errors }}
+    <div class="duas-colunas">
+      <div>{{ form.username.label_tag }} {{ form.username }} {{ form.username.errors }}</div>
+      <div>{{ form.matricula.label_tag }} {{ form.matricula }} {{ form.matricula.errors }}</div>
+    </div>
+    {{ form.secretaria.label_tag }} {{ form.secretaria }} {{ form.secretaria.errors }}
+    {{ form.senha.label_tag }} {{ form.senha }}
+    <div class="suave">{{ form.senha.help_text }}</div>
+    {{ form.senha.errors }}
+    <label class="check">{{ form.gestor }} <span>{{ form.gestor.label }}</span></label>
+    <p><button class="btn" type="submit">Salvar</button> <a class="btn sec" href="{% url 'gestao:servidores' %}">Cancelar</a></p>
+  </form>
+</div>
+{% endblock %}

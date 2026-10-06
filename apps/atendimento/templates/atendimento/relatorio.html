@@ -1,0 +1,19 @@
+{% extends "atendimento/base.html" %}
+{% block titulo %}Relatório{% endblock %}
+{% block conteudo %}
+<h1>Solicitações por zona · {% if secretaria %}{{ secretaria.sigla }}{% else %}todas as secretarias{% endif %}</h1>
+<p class="suave">Gerado com <code>values().annotate(Count())</code>, o equivalente ao <code>GROUP BY</code> do SQL.</p>
+<table>
+  <thead>
+    <tr><th>Zona</th>{% for rotulo in status_labels %}<th class="num">{{ rotulo }}</th>{% endfor %}<th class="num">Total</th></tr>
+  </thead>
+  <tbody>
+  {% for linha in linhas %}
+    <tr><td>{{ linha.zona }}</td>{% for n in linha.por_status %}<td class="num">{{ n }}</td>{% endfor %}<td class="num"><strong>{{ linha.total }}</strong></td></tr>
+  {% endfor %}
+  </tbody>
+  <tfoot>
+    <tr><th>Total</th>{% for n in totais %}<th class="num">{{ n }}</th>{% endfor %}<th class="num">{{ total_geral }}</th></tr>
+  </tfoot>
+</table>
+{% endblock %}

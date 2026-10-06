@@ -1,0 +1,14 @@
+{% extends "atendimento/base.html" %}
+{% block titulo %}Nova solicitação{% endblock %}
+{% block conteudo %}
+<h1>Nova solicitação</h1>
+<div class="card" style="max-width:640px">
+  <form method="post">
+    {% csrf_token %}
+    {% for campo in form %}
+      {{ campo.label_tag }} {{ campo }} {{ campo.errors }}
+    {% endfor %}
+    <p><button class="btn" type="submit">Enviar</button></p>
+  </form>
+</div>
+{% endblock %}

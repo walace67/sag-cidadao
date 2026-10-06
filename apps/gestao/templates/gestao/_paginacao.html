@@ -1,0 +1,7 @@
+{% if pagina.has_other_pages %}
+<div class="paginacao">
+  {% if pagina.has_previous %}<a class="btn sec btn-peq" href="?{% if q %}q={{ q|urlencode }}&{% endif %}page={{ pagina.previous_page_number }}">Anterior</a>{% endif %}
+  <span class="suave">Página {{ pagina.number }} de {{ pagina.paginator.num_pages }} · {{ pagina.paginator.count }} registro{{ pagina.paginator.count|pluralize }}</span>
+  {% if pagina.has_next %}<a class="btn sec btn-peq" href="?{% if q %}q={{ q|urlencode }}&{% endif %}page={{ pagina.next_page_number }}">Próxima</a>{% endif %}
+</div>
+{% endif %}

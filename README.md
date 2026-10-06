@@ -1,0 +1,120 @@
+# SAG-Cidadão
+
+![Testes](https://github.com/SEU_USUARIO/sag-cidadao/actions/workflows/testes.yml/badge.svg)
+
+**Sistema de Atendimento e Gestão de Solicitações ao Cidadão.** Com ele, o morador registra um problema urbano (buraco, iluminação, lixo), acompanha o andamento pelo número de protocolo, e cada secretaria municipal trata as solicitações da sua área. O gestor acompanha tudo por um dashboard de indicadores.
+
+Projeto de estudo e portfólio construído com **Python, Django e PostgreSQL**. Ele aplica na prática os conteúdos de Banco de Dados, Engenharia de Software, Desenvolvimento Web e Segurança da Informação/LGPD.
+
+---
+
+## Funcionalidades
+
+| Perfil | O que faz |
+|---|---|
+| **Cidadão** | Faz o autocadastro com confirmação por e-mail, abre solicitações, acompanha o andamento e cancela enquanto a solicitação está aberta. Em "Meus dados", vê, corrige e exporta os próprios dados (LGPD). |
+| **Servidor** | Usa o painel da sua secretaria com filtros e busca, muda o status de acordo com um fluxo validado, define prioridades e consulta o relatório por zona da cidade. |
+| **Gestor** | Acompanha o dashboard (volume, cumprimento de prazo, tempo médio, atrasadas e séries diárias), cuida dos cadastros (secretarias, bairros, serviços e áreas de atuação) e gerencia servidores e cidadãos sem usar o admin do Django. |
+| **Público** | Consulta pelo protocolo, sem login e sem ver dados pessoais. |
+| **API REST** | Autenticação por token, listagem, abertura, mudança de status e cancelamento, com limite de requisições. |
+
+## Arquitetura
+
+```
+Navegador ──HTTPS──▶ Nginx ──socket──▶ Gunicorn ──▶ Django ──▶ PostgreSQL
+                      │                              │
+                 estáticos                    cache (Redis ou tabela)
+```
+
+O código é organizado em camadas:
+
+- **Templates** (apresentação)
+- **Views** (recebem a requisição e decidem a resposta)
+- **services.py**: regras de negócio, como o fluxo de status, o cancelamento e os indicadores
+- **Models** (dados e restrições do banco)
+
+As telas e a API chamam os **mesmos** serviços, então uma regra nunca fica duplicada.
+
+## Tecnologias
+
+- Python 3.12, Django 6.1, Django REST Framework
+- PostgreSQL 16 (constraints `CHECK` e `UNIQUE`, índices, `UUID`, `select_for_update`)
+- Gunicorn, Nginx e systemd
+- GitHub Actions (os testes e o `check --deploy` rodam a cada push)
+- Nenhuma biblioteca de front-end: o gráfico do dashboard é SVG gerado no servidor
+
+## Segurança e LGPD
+
+- **Controle de acesso por perfil (RBAC):** cada servidor só vê a própria secretaria. Pedir o registro de outra secretaria resulta em 404 (proteção contra IDOR).
+- **Proteção contra enumeração de usuários:** o cadastro responde sempre da mesma forma, e o titular verdadeiro recebe um aviso por e-mail.
+- **Contas e tokens:** a conta fica inativa até a confirmação. Os links de ativação e de redefinição de senha são de uso único e expiram em 24 h.
+- **Limite de tentativas (HTTP 429):** vale para cadastro, login, redefinição de senha, consulta de protocolo e token da API. Depois de 5 senhas erradas, a conta fica bloqueada por 15 minutos.
+- **Cabeçalhos de segurança:** CSP com *nonce*, HSTS, `X-Frame-Options: DENY`, `nosniff` e cookies `Secure`, `HttpOnly` e `SameSite`.
+- **IP do cliente atrás do proxy:** o sistema só confia no IP informado pelo proxy próprio (o cliente pode forjar o `X-Forwarded-For`).
+- **Logs de segurança:** bloqueios e excessos de tentativas são registrados sem CPF e sem senha.
+- **LGPD:**
+  - aviso de privacidade;
+  - minimização de dados (o CPF aparece mascarado);
+  - direitos de acesso, correção e portabilidade em JSON (art. 18);
+  - cadastros não confirmados são apagados após 24 h.
+- **Segredos:** ficam só no `.env`, que não vai para o Git.
+
+## Como rodar (desenvolvimento)
+
+```bash
+git clone https://github.com/SEU_USUARIO/sag-cidadao.git
+cd sag-cidadao
+python3 -m venv .venv && source .venv/bin/activate
+pip install -r requirements.txt
+cp .env.example .env          # preencha SECRET_KEY e DB_PASSWORD
+python manage.py migrate
+python manage.py createsuperuser
+python manage.py tornar_gestor SEU_LOGIN
+python manage.py popular_demo  # dados de demonstração para o dashboard
+python manage.py runserver
+```
+
+Em desenvolvimento, os e-mails (ativação, redefinição de senha) aparecem **no terminal** do `runserver`.
+
+## Testes
+
+```bash
+python manage.py test
+```
+
+São 64 testes automatizados. Eles cobrem:
+
+- o fluxo de status e as constraints do banco;
+- o controle de acesso (403/404);
+- a ausência de N+1 (`assertNumQueries`);
+- a API (200, 201, 401, 403, 404, 405, 409, 429);
+- a proteção contra enumeração, os bloqueios e os cabeçalhos de segurança.
+
+## Implantação (produção)
+
+Os arquivos ficam em [`deploy/`](deploy/):
+
+| Arquivo | Função |
+|---|---|
+| `gunicorn.conf.py` | Servidor de aplicação: workers, timeouts e socket Unix |
+| `nginx/sag-cidadao.conf` | Proxy reverso: HTTPS, estáticos e cabeçalhos do proxy |
+| `systemd/sag-cidadao.service` | Mantém o serviço no ar com usuário sem privilégios |
+| `systemd/sag-limpeza.timer` | Retenção LGPD diária (cadastros pendentes e sessões expiradas) |
+| `atualizar.sh` | Atualiza a versão: `git pull`, `migrate`, `collectstatic`, reload e health check |
+
+O endpoint `GET /saude/` responde 200 quando a aplicação e o banco estão funcionando, e 503 quando não estão. Ele serve para o monitoramento.
+
+## Conteúdos de concurso aplicados
+
+| Matéria | Onde está no projeto |
+|---|---|
+| Banco de Dados | Modelagem ER, chaves, N:N com tabela associativa, constraints, índices, transações (ACID), `SELECT ... FOR UPDATE`, agregações |
+| Engenharia de Software | Requisitos, camadas, MVT/MVC, máquina de estados, testes automatizados, CI |
+| Desenvolvimento Web | HTTP (métodos e códigos), REST, PRG, CSRF, sessões e cookies, templates |
+| Segurança | OWASP Top 10 (A01, A05, A07), autenticação x autorização, hash de senha, rate limiting, CSP, HSTS, menor privilégio |
+| LGPD | Bases legais (art. 7º, III e art. 23), princípios (art. 6º), direitos do titular (art. 18), retenção |
+| Infraestrutura | Proxy reverso, WSGI, systemd, variáveis de ambiente (12-Factor), Git |
+
+---
+
+Projeto educacional. Os dados de demonstração são fictícios.

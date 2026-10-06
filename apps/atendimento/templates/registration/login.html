@@ -1,0 +1,18 @@
+{% extends "atendimento/base.html" %}
+{% block titulo %}Entrar{% endblock %}
+{% block conteudo %}
+<h1>Entrar</h1>
+<div class="card" style="max-width:420px">
+  {# POST + csrf_token: o token impede que outro site envie este formulário em seu nome (CSRF) #}
+  <form method="post">
+    {% csrf_token %}
+    {{ form.non_field_errors }}
+    <label for="{{ form.username.id_for_label }}">CPF ou usuário:</label> {{ form.username }}
+    {{ form.password.label_tag }} {{ form.password }}
+    <input type="hidden" name="next" value="{{ next }}">
+    <p><button class="btn" type="submit">Entrar</button></p>
+  </form>
+  <p class="suave"><a href="{% url 'password_reset' %}">Esqueci minha senha</a></p>
+  <p class="suave">Ainda não tem conta? <a href="{% url 'atendimento:cadastro' %}">Crie sua conta de cidadão</a>.</p>
+</div>
+{% endblock %}

@@ -1,0 +1,10 @@
+{% extends "atendimento/base.html" %}
+{% block titulo %}Acesso negado{% endblock %}
+{% block conteudo %}
+<h1>Acesso negado</h1>
+<div class="card" style="max-width:640px">
+  <p style="margin-top:0">Seu perfil não tem permissão para esta página.</p>
+  <p><a class="btn" href="{% url 'atendimento:inicio' %}">Ir para o início</a></p>
+  <p class="suave">Código HTTP 403 (Forbidden): você está identificado, mas não autorizado.</p>
+</div>
+{% endblock %}

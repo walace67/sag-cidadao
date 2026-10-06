@@ -1,0 +1,12 @@
+{% autoescape off %}Olá!
+
+Alguém tentou criar uma conta no SAG-Cidadão usando dados (CPF ou e-mail) que já pertencem à sua conta. Nenhuma conta nova foi criada.
+
+Se foi você, não precisa se cadastrar de novo:
+- Para entrar: {{ login }}
+- Se esqueceu a senha: {{ senha }}
+
+Se não foi você, nenhuma ação é necessária. Seus dados continuam protegidos.
+
+SAG-Cidadão
+{% endautoescape %}

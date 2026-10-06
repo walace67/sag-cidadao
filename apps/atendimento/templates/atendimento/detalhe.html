@@ -1,0 +1,69 @@
+{% extends "atendimento/base.html" %}
+{% block titulo %}Solicitação{% endblock %}
+{% block conteudo %}
+<p><a href="{% url 'atendimento:painel' %}">&larr; Voltar às solicitações</a></p>
+<h1>{{ s.categoria.nome }} <span class="badge st-{{ s.status }}">{{ s.get_status_display }}</span></h1>
+
+<div class="card">
+  <dl class="grade">
+    <dt>Protocolo</dt><dd><code>{{ s.protocolo }}</code></dd>
+    <dt>Cidadão</dt><dd>{{ s.cidadao.nome_completo }}</dd>
+    <dt>Bairro</dt><dd>{{ s.bairro }}</dd>
+    <dt>Endereço</dt><dd>{{ s.endereco_referencia }}</dd>
+    <dt>Descrição</dt><dd>{{ s.descricao|linebreaksbr }}</dd>
+    <dt>Prioridade</dt><dd>{{ s.get_prioridade_display }}</dd>
+    <dt>Responsável</dt><dd>{{ s.responsavel.usuario.get_full_name|default:"Não atribuído" }}</dd>
+    <dt>Aberta em</dt><dd>{{ s.criado_em|date:"d/m/Y H:i" }}</dd>
+    <dt>Prazo</dt><dd>{{ data_limite|date:"d/m/Y" }} ({{ s.categoria.prazo_dias }} dias)
+      {% if atrasada %}<span class="atraso">· vencido</span>{% endif %}</dd>
+    {% if s.concluida_em %}<dt>Concluída em</dt><dd>{{ s.concluida_em|date:"d/m/Y H:i" }}</dd>{% endif %}
+  </dl>
+</div>
+
+{% if pode_prioridade %}
+<div class="card">
+  <h2 style="margin-top:0">Prioridade</h2>
+  <form method="post" class="linha-form">
+    {% csrf_token %}
+    <input type="hidden" name="acao" value="prioridade">
+    <div>{{ form_prioridade.prioridade }}</div>
+    <button class="btn sec" type="submit">Atualizar prioridade</button>
+  </form>
+</div>
+{% endif %}
+
+{% if not pode_status %}
+<p class="suave">A mudança de status é feita pelo servidor da secretaria responsável ({{ s.categoria.secretaria.sigla }}).</p>
+{% elif form.fields.novo_status.choices %}
+<div class="card">
+  <h2 style="margin-top:0">Alterar status</h2>
+  <form method="post">
+    {% csrf_token %}
+    <input type="hidden" name="acao" value="status">
+    {{ form.novo_status.label_tag }} {{ form.novo_status }} {{ form.novo_status.errors }}
+    {{ form.observacao.label_tag }} {{ form.observacao }}
+    <p><button class="btn" type="submit">Salvar</button></p>
+  </form>
+</div>
+{% else %}
+<p class="suave">Esta solicitação está encerrada e não pode mais mudar de status.</p>
+{% endif %}
+
+<h2>Histórico</h2>
+<table>
+  <thead><tr><th>Data</th><th>De</th><th>Para</th><th>Usuário</th><th>Observação</th></tr></thead>
+  <tbody>
+  {% for h in historico %}
+    <tr>
+      <td>{{ h.registrado_em|date:"d/m/Y H:i" }}</td>
+      <td>{{ h.get_status_anterior_display }}</td>
+      <td>{{ h.get_status_novo_display }}</td>
+      <td>{{ h.usuario.get_full_name|default:h.usuario.username|default:"—" }}</td>
+      <td>{{ h.observacao|default:"—" }}</td>
+    </tr>
+  {% empty %}
+    <tr><td colspan="5" class="suave">Sem registros.</td></tr>
+  {% endfor %}
+  </tbody>
+</table>
+{% endblock %}

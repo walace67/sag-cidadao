@@ -1,0 +1,12 @@
+{% extends "atendimento/base.html" %}
+{% block titulo %}Redefinir senha{% endblock %}
+{% block conteudo %}
+<h1>Redefinir senha</h1>
+<div class="card" style="max-width:520px">
+  <p style="margin-top:0" class="suave">Informe o e-mail da sua conta. Se ele estiver cadastrado, enviaremos um link para criar uma nova senha.</p>
+  <form method="post">{% csrf_token %}
+    {{ form.email.label_tag }} {{ form.email }} {{ form.email.errors }}
+    <p><button class="btn" type="submit">Enviar link</button></p>
+  </form>
+</div>
+{% endblock %}

@@ -1,0 +1,9 @@
+# Dependências com versão FIXA: o servidor instala exatamente o que foi testado.
+#   pip install -r requirements.txt
+Django==6.1.1
+djangorestframework==3.18.1
+psycopg[binary]==3.3.6
+python-decouple==3.8
+gunicorn==26.2.0
+# Opcional, se usar REDIS_URL:
+# redis==6.4.0

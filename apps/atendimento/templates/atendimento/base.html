@@ -1,0 +1,126 @@
+{% load gestao_tags %}{% comment %}
+  Template base: as demais páginas "herdam" dele com {% extends %} e
+  preenchem os {% block %}. É o mesmo princípio da herança em POO.
+{% endcomment %}
+<!doctype html>
+<html lang="pt-br">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block titulo %}SAG-Cidadão{% endblock %} · SAG-Cidadão</title>
+  <style>
+    :root { --azul:#1f4e79; --fundo:#f4f6f9; --borda:#d5dbe3; --texto:#1d2733; --suave:#5b6878; }
+    * { box-sizing: border-box; }
+    body { margin:0; font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; background:var(--fundo); color:var(--texto); }
+    header { background:var(--azul); color:#fff; }
+    header .wrap { display:flex; align-items:center; gap:24px; flex-wrap:wrap; }
+    header a { color:#fff; text-decoration:none; }
+    header .marca { font-weight:700; font-size:18px; }
+    header nav { display:flex; gap:16px; flex:1; flex-wrap:wrap; }
+    header form { margin:0; }
+    header button { background:none; border:1px solid #fff8; color:#fff; padding:4px 10px; border-radius:6px; cursor:pointer; }
+    .wrap { max-width:1040px; margin:0 auto; padding:14px 16px; }
+    main .wrap { padding-top:24px; }
+    h1 { font-size:24px; margin:0 0 16px; }
+    h2 { font-size:18px; margin:24px 0 12px; }
+    .card { background:#fff; border:1px solid var(--borda); border-radius:10px; padding:20px; margin-bottom:16px; }
+    table { width:100%; border-collapse:collapse; background:#fff; }
+    th, td { text-align:left; padding:10px 12px; border-bottom:1px solid var(--borda); font-size:14px; vertical-align:top; }
+    th { background:#e8eef5; font-weight:600; }
+    td.num, th.num { text-align:right; }
+    a { color:var(--azul); }
+    label { display:block; font-weight:600; font-size:14px; margin:12px 0 4px; }
+    input, select, textarea { width:100%; background:#fff; padding:8px 10px; border:1px solid var(--borda); border-radius:6px; font:inherit; }
+    .filtros { display:grid; grid-template-columns: 1fr 1fr 2fr auto; gap:12px; align-items:end; }
+    .filtros label { margin-top:0; }
+    .filtros.filtros-5 { grid-template-columns: 1fr 1fr 1fr 2fr auto; }
+    .linha-form { display:flex; gap:12px; align-items:center; }
+    .linha-form > div { flex:0 1 240px; }
+    .btn { display:inline-block; background:var(--azul); color:#fff; border:0; padding:9px 18px; border-radius:6px; font:inherit; cursor:pointer; text-decoration:none; }
+    .btn.sec { background:#fff; color:var(--azul); border:1px solid var(--azul); }
+    label.check { display:flex; gap:10px; align-items:flex-start; font-weight:400; margin-top:16px; }
+    label.check input { width:auto; margin-top:3px; }
+    .errorlist { color:#b3261e; margin:4px 0 0; padding-left:18px; font-size:13px; }
+    .msg { padding:12px 16px; border-radius:8px; margin-bottom:16px; }
+    .msg.success { background:#e3f4e8; color:#1e5b31; }
+    .msg.error { background:#fbe5e3; color:#8a1f17; }
+    .badge { display:inline-block; padding:2px 10px; border-radius:999px; font-size:12px; font-weight:600; white-space:nowrap; }
+    .st-ABE { background:#e5edf7; color:#1f4e79; }
+    .st-ANA { background:#fff3d6; color:#7a5300; }
+    .st-EXE { background:#e8e3f7; color:#4a2c8f; }
+    .st-CON { background:#e3f4e8; color:#1e5b31; }
+    .st-IND { background:#eceff2; color:#4b5563; }
+    .st-CAN { background:#f3e8e7; color:#7a3b35; }
+    .btn-peq { padding:4px 12px; font-size:13px; }
+    .atraso { color:#b3261e; font-weight:600; font-size:12px; }
+    .suave { color:var(--suave); font-size:13px; }
+    .grade { display:grid; grid-template-columns: 180px 1fr; gap:8px 16px; }
+    .grade dt { color:var(--suave); }
+    .grade dd { margin:0; }
+    .paginacao { display:flex; gap:12px; align-items:center; margin-top:12px; }
+    code { background:#eef1f5; padding:2px 6px; border-radius:4px; font-size:13px; word-break:break-all; }
+    .abas { display:flex; gap:4px; flex-wrap:wrap; border-bottom:1px solid var(--borda); margin:-8px 0 20px; }
+    .abas a { padding:8px 12px; text-decoration:none; color:var(--suave); font-size:14px; border-bottom:2px solid transparent; margin-bottom:-1px; }
+    .abas a:hover { color:var(--texto); }
+    .abas a[aria-current] { color:var(--azul); border-bottom-color:var(--azul); font-weight:600; }
+    .cabecalho-lista { display:flex; justify-content:space-between; align-items:center; gap:12px; margin-bottom:12px; }
+    .cabecalho-lista h1 { margin:0; }
+    .busca { display:flex; gap:8px; align-items:center; margin-bottom:12px; max-width:560px; }
+    form.inline { display:inline; margin:0; }
+    .btn-link { background:none; border:0; padding:4px 6px; font:inherit; font-size:13px; color:var(--azul); cursor:pointer; text-decoration:underline; }
+    .btn-link.perigo { color:#b3261e; }
+    th.acoes-col, td.acoes-col { white-space:nowrap; width:1%; }
+    .duas-colunas { display:grid; grid-template-columns:1fr 1fr; gap:0 16px; }
+    .grade-dados { display:grid; grid-template-columns:1fr 1fr; gap:16px; }
+    @media (max-width:700px) { .filtros, .filtros.filtros-5, .grade, .duas-colunas, .grade-dados { grid-template-columns:1fr; } .cabecalho-lista { flex-wrap:wrap; } }
+  </style>
+</head>
+<body>
+<header>
+  <div class="wrap">
+    <a class="marca" href="{% url 'atendimento:inicio' %}">SAG-Cidadão</a>
+    <nav>
+      {% if user|eh_gestor %}
+        <a href="{% url 'gestao:dashboard' %}">Dashboard</a>
+        <a href="{% url 'atendimento:painel' %}">Solicitações</a>
+        <a href="{% url 'gestao:cadastro_lista' 'secretarias' %}">Cadastros</a>
+        <a href="{% url 'gestao:servidores' %}">Pessoas</a>
+      {% elif user.servidor %}
+        <a href="{% url 'atendimento:painel' %}">Painel</a>
+        <a href="{% url 'atendimento:relatorio' %}">Relatório</a>
+      {% elif user.cidadao %}
+        <a href="{% url 'atendimento:minhas' %}">Minhas solicitações</a>
+        <a href="{% url 'atendimento:nova' %}">Nova solicitação</a>
+        <a href="{% url 'atendimento:meus_dados' %}">Meus dados</a>
+      {% endif %}
+      <a href="{% url 'atendimento:consulta' %}">Consultar protocolo</a>
+    </nav>
+    {% if user.is_authenticated %}
+      <span>{{ user.get_full_name|default:user.username }}</span>
+      {# No Django 5+, logout exige POST (proteção contra logout forçado por link) #}
+      <form method="post" action="{% url 'logout' %}">{% csrf_token %}<button type="submit">Sair</button></form>
+    {% else %}
+      <a href="{% url 'login' %}">Entrar</a>
+    {% endif %}
+  </div>
+</header>
+<main>
+  <div class="wrap">
+    {% for m in messages %}<div class="msg {{ m.tags }}">{{ m }}</div>{% endfor %}
+    {% block conteudo %}{% endblock %}
+  </div>
+</main>
+{% comment %}
+  Comportamentos genéricos, sem JavaScript dentro do HTML (onclick, onsubmit):
+  a CSP do sistema bloqueia scripts inline sem o nonce. Basta marcar o elemento:
+    <form data-confirmar="Tem certeza?">   pede confirmação antes de enviar
+    <select data-autoenvio>                envia o formulário ao trocar a opção
+{% endcomment %}
+<script nonce="{{ csp_nonce }}">
+  document.querySelectorAll("form[data-confirmar]").forEach((f) =>
+    f.addEventListener("submit", (ev) => { if (!confirm(f.dataset.confirmar)) ev.preventDefault(); }));
+  document.querySelectorAll("select[data-autoenvio]").forEach((s) =>
+    s.addEventListener("change", () => s.form.submit()));
+</script>
+</body>
+</html>
