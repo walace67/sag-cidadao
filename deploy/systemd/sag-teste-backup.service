@@ -1,0 +1,10 @@
+# Teste semanal de restauração: prova que o backup volta de verdade.
+[Unit]
+Description=SAG-Cidadão: teste de restauração do backup
+After=postgresql.service
+
+[Service]
+Type=oneshot
+User=sag
+WorkingDirectory=/srv/sag_cidadao
+ExecStart=/srv/sag_cidadao/deploy/backup/testar_restauracao.sh

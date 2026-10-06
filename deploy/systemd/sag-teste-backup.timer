@@ -1,0 +1,10 @@
+# Domingo às 4h, depois do backup da madrugada.
+[Unit]
+Description=Teste semanal de restauração do SAG-Cidadão
+
+[Timer]
+OnCalendar=Sun *-*-* 04:00:00
+Persistent=true
+
+[Install]
+WantedBy=timers.target

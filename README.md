@@ -104,6 +104,33 @@ Os arquivos ficam em [`deploy/`](deploy/):
 
 O endpoint `GET /saude/` responde 200 quando a aplicação e o banco estão funcionando, e 503 quando não estão. Ele serve para o monitoramento.
 
+## Backup e restauração
+
+Os scripts ficam em [`deploy/backup/`](deploy/backup/) e leem as credenciais do mesmo `.env` do Django.
+
+```bash
+deploy/backup/backup.sh                  # pg_dump -Fc + SHA-256 + rotação + cópia externa
+deploy/backup/testar_restauracao.sh      # restaura num banco temporário e compara tabela a tabela
+deploy/backup/restaurar.sh               # restaura numa CÓPIA (<banco>_restaurado), sem tocar no banco em uso
+deploy/backup/restaurar.sh --substituir  # desastre: troca o banco, guardando o anterior para desfazer
+```
+
+O que os scripts garantem:
+
+- **Consistência:** o `pg_dump` lê uma foto do banco (snapshot MVCC), e o sistema continua no ar durante o backup.
+- **Nenhum arquivo pela metade:** o backup é gravado como `.parcial` e só é renomeado depois de conferido com `pg_restore --list`.
+- **Integridade:** um checksum SHA-256 é conferido antes de qualquer restauração.
+- **Proteção dos dados (LGPD, art. 46):**
+  - criptografia AES-256 opcional;
+  - permissão `600` nos arquivos;
+  - o arquivo descriptografado nunca fica no disco.
+- **Rotação GFS:** 7 backups diários, 4 semanais e 6 mensais, usando *hard links* (não ocupa espaço extra).
+- **Regra 3-2-1:** cópia opcional para um HD externo ou outro servidor (`rsync`).
+- **Restauração reversível:** o banco substituído é renomeado, nunca apagado.
+- **Teste semanal automático:** ele informa o tempo de restauração (base do RTO) e a idade do último backup (o RPO).
+
+Para agendar, use os arquivos `systemd/sag-backup.timer` (diário, 2h) e `systemd/sag-teste-backup.timer` (domingo, 4h).
+
 ## Conteúdos de concurso aplicados
 
 | Matéria | Onde está no projeto |
@@ -114,6 +141,7 @@ O endpoint `GET /saude/` responde 200 quando a aplicação e o banco estão func
 | Segurança | OWASP Top 10 (A01, A05, A07), autenticação x autorização, hash de senha, rate limiting, CSP, HSTS, menor privilégio |
 | LGPD | Bases legais (art. 7º, III e art. 23), princípios (art. 6º), direitos do titular (art. 18), retenção |
 | Infraestrutura | Proxy reverso, WSGI, systemd, variáveis de ambiente (12-Factor), Git |
+| Backup | Backup lógico x físico, completo/incremental/diferencial, RPO e RTO, regra 3-2-1, GFS, teste de restauração |
 
 ---
 

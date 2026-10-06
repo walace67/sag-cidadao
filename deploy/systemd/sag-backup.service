@@ -1,0 +1,13 @@
+# Backup diário do banco (disparado pelo sag-backup.timer).
+# Se falhar, o systemd registra: systemctl status sag-backup / journalctl -u sag-backup
+[Unit]
+Description=SAG-Cidadão: backup do PostgreSQL
+After=postgresql.service
+
+[Service]
+Type=oneshot
+User=sag
+WorkingDirectory=/srv/sag_cidadao
+ExecStart=/srv/sag_cidadao/deploy/backup/backup.sh
+Nice=10
+IOSchedulingClass=idle

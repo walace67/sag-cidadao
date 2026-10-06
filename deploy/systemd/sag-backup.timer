@@ -1,0 +1,16 @@
+# Backup todo dia às 2h. Persistent=true: se o servidor estava desligado
+# nessa hora, o backup roda assim que ele ligar.
+#
+#   sudo cp deploy/systemd/sag-backup.* deploy/systemd/sag-teste-backup.* /etc/systemd/system/
+#   sudo systemctl daemon-reload
+#   sudo systemctl enable --now sag-backup.timer sag-teste-backup.timer
+#   systemctl list-timers 'sag-*'
+[Unit]
+Description=Backup diário do SAG-Cidadão
+
+[Timer]
+OnCalendar=*-*-* 02:00:00
+Persistent=true
+
+[Install]
+WantedBy=timers.target
