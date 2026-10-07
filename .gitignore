@@ -2,6 +2,7 @@
 .env
 .env.*
 !.env.example
+!.env.docker.example
 
 # ---- Ambiente e caches do Python ----
 .venv/
@@ -21,6 +22,8 @@ backups/
 media/
 
 # ---- Gerados ----
+deploy/qa/carga.json
+relatorio-*
 staticfiles/
 *.log
 *.zip

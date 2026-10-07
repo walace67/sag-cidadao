@@ -41,7 +41,7 @@
   <h2 style="margin-top:0">Local</h2>
   <div class="mapa" data-mapa="ver" data-zoom="17" data-tiles="{{ tiles }}"
        data-centro="[{{ s.latitude|stringformat:'f' }}, {{ s.longitude|stringformat:'f' }}]"
-       role="img" aria-label="Mapa com o local da solicitação"></div>
+       role="region" aria-label="Mapa com o local da solicitação"></div>
   <p class="suave">Coordenadas: {{ s.latitude|stringformat:'f' }}, {{ s.longitude|stringformat:'f' }} ·
     <a href="https://www.openstreetmap.org/?mlat={{ s.latitude|stringformat:'f' }}&amp;mlon={{ s.longitude|stringformat:'f' }}#map=18/{{ s.latitude|stringformat:'f' }}/{{ s.longitude|stringformat:'f' }}" target="_blank" rel="noopener">abrir no OpenStreetMap</a></p>
 </div>
@@ -53,7 +53,7 @@
   <form method="post" class="linha-form">
     {% csrf_token %}
     <input type="hidden" name="acao" value="prioridade">
-    <div>{{ form_prioridade.prioridade }}</div>
+    <div><label for="{{ form_prioridade.prioridade.id_for_label }}" class="visualmente-oculto">Prioridade</label>{{ form_prioridade.prioridade }}</div>
     <button class="btn sec" type="submit">Atualizar prioridade</button>
   </form>
 </div>

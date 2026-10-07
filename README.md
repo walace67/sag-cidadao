@@ -61,6 +61,7 @@ As telas e a API chamam os **mesmos** serviços, então uma regra nunca fica dup
 - **Trilha de auditoria imutável:** entradas, falhas de login, alterações de cadastro (antes e depois), papéis, bloqueios e exportação de dados. Um trigger do PostgreSQL recusa `UPDATE` e `DELETE`.
 - **Fotos sem dados escondidos:** cada imagem é regravada do zero, o que apaga a localização GPS e os demais metadados EXIF. Arquivos disfarçados e bombas de descompressão são recusados. As fotos não têm endereço público: cada acesso passa pela autorização, e o Nginx entrega o arquivo (`X-Accel-Redirect`).
 - **Segredos:** ficam só no `.env`, que não vai para o Git.
+- **Documentos LGPD:** rascunhos do RIPD (Relatório de Impacto) e da Política de Privacidade, para revisão do jurídico e do encarregado.
 
 ## Como rodar (desenvolvimento)
 
@@ -85,15 +86,41 @@ Em desenvolvimento, os e-mails (ativação, redefinição de senha) aparecem **n
 python manage.py test
 ```
 
-São 104 testes automatizados. Eles cobrem:
+São 123 testes automatizados. Eles cobrem:
 
 - o fluxo de status e as constraints do banco;
 - o controle de acesso (403/404);
 - a ausência de N+1 (`assertNumQueries`);
 - a API (200, 201, 401, 403, 404, 405, 409, 429);
-- a proteção contra enumeração, os bloqueios e os cabeçalhos de segurança.
+- a proteção contra enumeração, os bloqueios e os cabeçalhos de segurança;
+- a verificação em duas etapas, a auditoria imutável, as fotos sem EXIF e o mapa;
+- a entrada com gov.br contra um provedor OIDC simulado (PKCE, `state` forjado, token adulterado, `alg: none`, repetição de `nonce`).
 
-## Implantação (produção)
+## Qualidade
+
+| Verificação | Como rodar | Resultado atual |
+|---|---|---|
+| Acessibilidade (WCAG 2.1 AA / eMAG 3.1) | `python manage.py auditar_acessibilidade` | 21 telas sem violações automáticas, também no alto contraste |
+| Teste de carga | `locust -f deploy/qa/locustfile.py` | 100 usuários: 0 erros, 95% abaixo de 66 ms (2 núcleos) |
+| Saúde interna | `python manage.py verificar_sistema` | banco, fila, backup, disco e acessos, a cada 10 min |
+
+Recursos de acessibilidade: barra com atalhos (Alt+1 conteúdo, Alt+2 menu, Alt+3 rodapé), alto contraste, navegação completa por teclado, rótulos para leitores de tela e página de acessibilidade.
+
+## Rodar com Docker
+
+```bash
+cp .env.docker.example .env.docker   # preencha SECRET_KEY, DB_PASSWORD e o domínio
+docker compose --env-file .env.docker up -d --build
+docker compose exec web python manage.py createsuperuser
+```
+
+Sobem quatro contêineres: `db` (PostgreSQL 16), `web` (Gunicorn), `worker` (fila de e-mails) e `nginx`, na porta 8088. O passo a passo para publicar num servidor real, com domínio e HTTPS automático (Caddy + Let's Encrypt), está em [`deploy/PUBLICAR.md`](deploy/PUBLICAR.md).
+
+## Entrar com gov.br
+
+O login pelo gov.br (OpenID Connect com PKCE) fica desligado até a Prefeitura obter as credenciais no credenciamento do gov.br. Depois basta preencher `GOVBR_CLIENT_ID`, `GOVBR_CLIENT_SECRET` e `GOVBR_AMBIENTE` no `.env`: o botão "Entrar com gov.br" aparece sozinho.
+
+## Implantação sem Docker (systemd)
 
 Os arquivos ficam em [`deploy/`](deploy/):
 
@@ -143,7 +170,8 @@ Para agendar, use os arquivos `systemd/sag-backup.timer` (diário, 2h) e `system
 | Desenvolvimento Web | HTTP (métodos e códigos), REST, PRG, CSRF, sessões e cookies, templates |
 | Segurança | OWASP Top 10 (A01, A05, A07), autenticação x autorização, hash de senha, rate limiting, CSP, HSTS, menor privilégio |
 | LGPD | Bases legais (art. 7º, III e art. 23), princípios (art. 6º), direitos do titular (art. 18), retenção |
-| Infraestrutura | Proxy reverso, WSGI, systemd, variáveis de ambiente (12-Factor), Git |
+| Infraestrutura | Proxy reverso, WSGI, systemd, contêineres (Docker Compose), variáveis de ambiente (12-Factor), Git |
+| Autenticação | OAuth 2.0 x OpenID Connect, PKCE, JWT (assinatura RS256), TOTP (RFC 6238) |
 | Backup | Backup lógico x físico, completo/incremental/diferencial, RPO e RTO, regra 3-2-1, GFS, teste de restauração |
 
 ---

@@ -1,0 +1,11 @@
+# Monitoramento ativo (banco, fila, backup, disco, acessos). Disparado pelo
+# sag-monitor.timer. Problema = e-mail para os ADMINS e status "failed".
+[Unit]
+Description=SAG-Cidadão: verificação de saúde interna
+After=postgresql.service
+
+[Service]
+Type=oneshot
+User=sag
+WorkingDirectory=/srv/sag_cidadao
+ExecStart=/srv/sag_cidadao/.venv/bin/python manage.py verificar_sistema

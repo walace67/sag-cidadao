@@ -1,0 +1,22 @@
+{% extends "atendimento/base.html" %}
+{% load gestao_tags %}
+{% block titulo %}Completar cadastro{% endblock %}
+{% block conteudo %}
+<h1>Quase lá</h1>
+<div class="card" style="max-width:560px">
+  <p style="margin-top:0">O gov.br confirmou sua identidade. Para usar o SAG-Cidadão, falta só o bairro onde você mora.</p>
+  <dl class="grade">
+    <dt>Nome</dt><dd>{{ dados.nome }}</dd>
+    <dt>CPF</dt><dd><code>{{ dados.cpf|mascara_cpf }}</code></dd>
+    <dt>E-mail</dt><dd>{{ dados.email|default:"não informado pelo gov.br" }}</dd>
+  </dl>
+  <form method="post">
+    {% csrf_token %}
+    {{ form.bairro.label_tag }} {{ form.bairro }} {{ form.bairro.errors }}
+    {{ form.telefone.label_tag }} {{ form.telefone }} {{ form.telefone.errors }}
+    <label class="check">{{ form.aceite }} Li e estou ciente do <a href="{% url 'atendimento:privacidade' %}" target="_blank" rel="noopener">aviso de privacidade</a></label>
+    {{ form.aceite.errors }}
+    <p><button class="btn" type="submit">Criar minha conta</button></p>
+  </form>
+</div>
+{% endblock %}

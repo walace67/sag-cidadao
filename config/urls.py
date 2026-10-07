@@ -26,6 +26,7 @@ urlpatterns = [
     # para usar as versões com limite de tentativas e o visual do sistema.
     path("contas/login/", contas.LoginSeguro.as_view(), name="login"),
     path("contas/2fa/", include("apps.doisfatores.urls")),
+    path("contas/govbr/", include("apps.govbr.urls")),
     path("contas/logout/", auth_views.LogoutView.as_view(), name="logout"),
     path("contas/senha/redefinir/", contas.RedefinirSenha.as_view(), name="password_reset"),
     path("contas/senha/redefinir/enviado/",

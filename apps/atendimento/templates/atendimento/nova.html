@@ -26,7 +26,7 @@
          data-limites="[{{ mapa.limites.0|stringformat:'f' }}, {{ mapa.limites.1|stringformat:'f' }}, {{ mapa.limites.2|stringformat:'f' }}, {{ mapa.limites.3|stringformat:'f' }}]"
          data-lat="{{ form.latitude.id_for_label }}" data-lng="{{ form.longitude.id_for_label }}"
          data-aviso="aviso-local" data-gps="usar-gps" data-limpar="limpar-local"
-         role="application" aria-label="Mapa para marcar o local do problema"></div>
+         role="region" aria-label="Mapa para marcar o local do problema"></div>
     <p class="suave" id="aviso-local" aria-live="polite">Nenhum local marcado (opcional).</p>
     {{ form.latitude }}{{ form.longitude }}
 

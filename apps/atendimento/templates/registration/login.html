@@ -12,6 +12,11 @@
     <input type="hidden" name="next" value="{{ next }}">
     <p><button class="btn" type="submit">Entrar</button></p>
   </form>
+  {% if govbr_habilitado %}
+  <p style="text-align:center;margin:14px 0 6px" class="suave">ou</p>
+  <p><a class="btn btn-govbr" href="{% url 'govbr:entrar' %}">Entrar com gov.br</a></p>
+  <p class="suave">Cidadão: use a mesma conta dos serviços do governo federal, sem criar outra senha.</p>
+  {% endif %}
   <p class="suave"><a href="{% url 'password_reset' %}">Esqueci minha senha</a></p>
   <p class="suave">Ainda não tem conta? <a href="{% url 'atendimento:cadastro' %}">Crie sua conta de cidadão</a>.</p>
 </div>

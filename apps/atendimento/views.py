@@ -78,6 +78,11 @@ def privacidade(request):
     return render(request, "atendimento/privacidade.html")
 
 
+def acessibilidade(request):
+    """Página exigida pelo eMAG: recursos de acessibilidade e atalhos do site."""
+    return render(request, "atendimento/acessibilidade.html")
+
+
 # ---------------------------------------------------------------------------
 # RF04 — Painel do servidor
 # ---------------------------------------------------------------------------

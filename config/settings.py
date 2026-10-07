@@ -67,6 +67,7 @@ INSTALLED_APPS = [
     "apps.auditoria",
     "django_tasks_db",  # fila de tarefas guardada no PostgreSQL
     "apps.doisfatores",
+    "apps.govbr",
 ]
 
 MIDDLEWARE = [
@@ -240,6 +241,10 @@ SECURE_CSP = {
 # cabeçalho, então só se confia nele quando há um proxy nosso na frente.
 # CONFIAR_PROXY=True apenas quando o Gunicorn estiver acessível SÓ pelo Nginx.
 CONFIAR_PROXY = config("CONFIAR_PROXY", default=False, cast=bool)
+# Quantos proxies NOSSOS ficam na frente do Django. Cada um ACRESCENTA um
+# endereço ao X-Forwarded-For; o IP real do cliente é o N-ésimo a contar
+# do fim. Nginx sozinho = 1; Caddy (HTTPS) + Nginx (Docker) = 2.
+PROXIES_CONFIAVEIS = config("PROXIES_CONFIAVEIS", default=1 if CONFIAR_PROXY else 0, cast=int)
 
 
 # ---------------------------------------------------------------------------
@@ -294,6 +299,15 @@ LOGOUT_REDIRECT_URL = "atendimento:inicio"
 # gestores e administradores). Desligue só em desenvolvimento, se quiser.
 EXIGIR_2FA_EQUIPE = config("EXIGIR_2FA_EQUIPE", default=not TESTANDO, cast=bool)
 
+# Login com a conta gov.br (OpenID Connect). Desligado enquanto não houver
+# credenciais: a Prefeitura solicita o credenciamento no Login Único e
+# recebe client_id e client_secret, primeiro em homologação.
+GOVBR_CLIENT_ID = config("GOVBR_CLIENT_ID", default="")
+GOVBR_CLIENT_SECRET = config("GOVBR_CLIENT_SECRET", default="")
+GOVBR_AMBIENTE = config("GOVBR_AMBIENTE", default="homologacao")  # ou "producao"
+# Endereço de retorno cadastrado no gov.br (vazio = calculado pela requisição)
+GOVBR_REDIRECT_URI = config("GOVBR_REDIRECT_URI", default="")
+
 # Validade dos links de ativação de cadastro e de redefinição de senha
 PASSWORD_RESET_TIMEOUT = 60 * 60 * 24  # 24 horas
 
@@ -328,7 +342,7 @@ REST_FRAMEWORK = {
     # identidade, e o cliente pode inventar esse cabeçalho a cada requisição
     # para escapar do limite. 0 = usa REMOTE_ADDR; 1 = confia no último
     # endereço, o que o nosso Nginx acrescentou.
-    "NUM_PROXIES": 1 if CONFIAR_PROXY else 0,
+    "NUM_PROXIES": PROXIES_CONFIAVEIS,
 }
 # Em produção, só JSON: a API "navegável" (HTML) fica para desenvolvimento.
 if not DEBUG:
@@ -336,8 +350,12 @@ if not DEBUG:
 
 
 # ---------------------------------------------------------------------------
-# Logs
+# Logs e alertas
 # ---------------------------------------------------------------------------
+# Quem recebe os alertas de erro e do monitoramento (separe por vírgula):
+#   ADMINS=ti@portovelho.ro.gov.br,plantao@portovelho.ro.gov.br
+ADMINS = config("ADMINS", default="", cast=Csv())
+SERVER_EMAIL = config("SERVER_EMAIL", default=DEFAULT_FROM_EMAIL)
 # Tudo vai para a saída padrão; em produção o systemd guarda no journal:
 #   journalctl -u sag-cidadao -f
 # O logger "sag.seguranca" registra bloqueios e limites estourados (trilha de
@@ -349,16 +367,28 @@ LOGGING = {
     "formatters": {
         "padrao": {"format": "{asctime} {levelname} {name}: {message}", "style": "{"},
     },
+    "filters": {
+        # Só manda e-mail de erro com DEBUG desligado (em produção)
+        "producao": {"()": "django.utils.log.RequireDebugFalse"},
+    },
     "handlers": {
         "console": {"class": "logging.StreamHandler", "formatter": "padrao"},
+        "alerta_email": {
+            "class": "apps.atendimento.alertas.AlertaPorEmail",
+            "level": "ERROR", "filters": ["producao"],
+            "include_html": False,  # sem a página de erro completa (pode ter dados pessoais)
+        },
     },
     "root": {"handlers": ["console"], "level": "WARNING"},
     "loggers": {
         "django": {"handlers": ["console"], "level": config("LOG_LEVEL", default="INFO"), "propagate": False},
-        "sag": {"handlers": ["console"], "level": "INFO", "propagate": False},
+        # Erros 500: log + e-mail para os ADMINS
+        "django.request": {"handlers": ["console", "alerta_email"], "level": "WARNING", "propagate": False},
+        "sag": {"handlers": ["console", "alerta_email"], "level": "INFO", "propagate": False},
     },
 }
 if TESTANDO:
     # Nos testes, os bloqueios são provocados de propósito: não poluir a saída.
     LOGGING["loggers"]["sag"]["level"] = "CRITICAL"
     LOGGING["loggers"]["django"]["level"] = "CRITICAL"
+    LOGGING["loggers"]["django.request"]["level"] = "CRITICAL"

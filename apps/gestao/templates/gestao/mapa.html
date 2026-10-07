@@ -24,7 +24,7 @@
 <div class="mapa mapa-grande" data-mapa="gestao" data-zoom="12" data-tiles="{{ tiles }}"
      data-centro="[{{ centro.0|stringformat:'f' }}, {{ centro.1|stringformat:'f' }}]"
      data-fonte="{% url 'gestao:mapa_dados' %}?dias={{ dias }}{% if secretaria_sel %}&amp;secretaria={{ secretaria_sel.pk }}{% endif %}"
-     data-contador="contador-mapa" role="application" aria-label="Mapa das solicitações"></div>
+     data-contador="contador-mapa" role="region" aria-label="Mapa das solicitações"></div>
 <p class="suave" id="contador-mapa" aria-live="polite">Carregando...</p>
 <p class="suave">O mapa mostra só as solicitações em que o cidadão marcou o local. Clique num ponto para abrir. Nenhum dado pessoal do cidadão é enviado para o mapa.</p>
 {% endblock %}

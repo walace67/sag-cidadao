@@ -1,0 +1,20 @@
+# O que NÃO entra na imagem: segredos, dados pessoais, lixo de desenvolvimento
+.env
+.env.*
+!.env.example
+!.env.docker.example
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+.git/
+.github/
+media/
+staticfiles/
+db.sqlite3*
+*.dump
+*.sql
+backups/
+deploy/qa/carga.json
+relatorio-*
+*.zip

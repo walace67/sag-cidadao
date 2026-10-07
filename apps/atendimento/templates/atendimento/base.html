@@ -85,14 +85,49 @@
     .fotos figcaption { font-size:12px; color:var(--suave); margin-top:4px; }
     .legenda-mapa { display:flex; gap:14px; flex-wrap:wrap; font-size:13px; margin:6px 0; }
     .legenda-mapa span::before { content:""; display:inline-block; width:10px; height:10px; border-radius:50%; margin-right:5px; background:var(--cor); }
+    .btn-govbr { display:block; text-align:center; background:#1351b4; }
+    /* ---- Acessibilidade (eMAG 3.1 / WCAG 2.1) ---- */
+    .barra-acess { background:#0f2a44; color:#fff; font-size:13px; }
+    .barra-acess .wrap { display:flex; gap:18px; flex-wrap:wrap; align-items:center; padding-top:6px; padding-bottom:6px; }
+    .barra-acess a, .barra-acess button { color:#fff; background:none; border:0; font:inherit; cursor:pointer; padding:2px 0; text-decoration:underline; }
+    .barra-acess .dir { margin-left:auto; display:flex; gap:18px; }
+    :focus-visible { outline:3px solid #ffbf47; outline-offset:2px; }
+    .visualmente-oculto { position:absolute !important; width:1px; height:1px; overflow:hidden; clip:rect(0 0 0 0); white-space:nowrap; }
+    footer { border-top:1px solid var(--borda); margin-top:40px; padding:18px 0 28px; font-size:13px; color:var(--suave); }
+    footer .wrap { display:flex; gap:18px; flex-wrap:wrap; }
+    /* Alto contraste: fundo preto, texto branco, links amarelos (padrão dos sites do governo).
+       Regra universal: cobre todas as telas, inclusive as que ainda serão criadas. */
+    html.alto-contraste *:not(svg *):not(.leaflet-tile):not(img) { background-color:#000 !important; color:#fff !important; border-color:#fff !important; box-shadow:none !important; }
+    /* Mesmo peso (especificidade) da regra geral acima, para vencê-la por vir depois */
+    html.alto-contraste a:not(svg *):not(.leaflet-tile):not(img), html.alto-contraste a *:not(svg *):not(.leaflet-tile):not(img),
+    html.alto-contraste button:not(svg *):not(.leaflet-tile):not(img), html.alto-contraste .btn:not(svg *):not(.leaflet-tile):not(img) { color:#ff0 !important; }
+    html.alto-contraste .btn:not(svg *):not(.leaflet-tile):not(img), html.alto-contraste button:not(svg *):not(.leaflet-tile):not(img) { border:2px solid #ff0 !important; }
+    html.alto-contraste .barras .trilho { background-color:#333 !important; }
+    html.alto-contraste .barras .barra:not(.vazio) { background-color:#fff !important; }
+    html.alto-contraste svg text { fill:#fff !important; }
   </style>
 {% block cabeca %}{% endblock %}
 </head>
 <body>
+{% comment %}
+  Barra de acessibilidade (eMAG): atalhos de teclado padronizados nos
+  sites do governo. No Chrome/Edge, Alt+número; no Firefox, Alt+Shift+número.
+{% endcomment %}
+<div class="barra-acess">
+  <div class="wrap">
+    <a href="#conteudo" accesskey="1">Ir para o conteúdo [1]</a>
+    <a href="#menu" accesskey="2">Ir para o menu [2]</a>
+    <a href="#rodape" accesskey="3">Ir para o rodapé [3]</a>
+    <span class="dir">
+      <a href="{% url 'atendimento:acessibilidade' %}">Acessibilidade</a>
+      <button type="button" id="alto-contraste" aria-pressed="false">Alto contraste</button>
+    </span>
+  </div>
+</div>
 <header>
   <div class="wrap">
     <a class="marca" href="{% url 'atendimento:inicio' %}">SAG-Cidadão</a>
-    <nav>
+    <nav id="menu" aria-label="Menu principal">
       {% if user|eh_gestor %}
         <a href="{% url 'gestao:dashboard' %}">Dashboard</a>
         <a href="{% url 'atendimento:painel' %}">Solicitações</a>
@@ -117,12 +152,20 @@
     {% endif %}
   </div>
 </header>
-<main>
+<main id="conteudo" tabindex="-1">
   <div class="wrap">
     {% for m in messages %}<div class="msg {{ m.tags }}">{{ m }}</div>{% endfor %}
     {% block conteudo %}{% endblock %}
   </div>
 </main>
+<footer id="rodape">
+  <div class="wrap">
+    <span>Prefeitura de Porto Velho · SAG-Cidadão</span>
+    <a href="{% url 'atendimento:acessibilidade' %}">Acessibilidade</a>
+    <a href="{% url 'atendimento:privacidade' %}">Privacidade e proteção de dados</a>
+    <a href="{% url 'atendimento:consulta' %}">Consultar protocolo</a>
+  </div>
+</footer>
 {% comment %}
   Comportamentos genéricos, sem JavaScript dentro do HTML (onclick, onsubmit):
   a CSP do sistema bloqueia scripts inline sem o nonce. Basta marcar o elemento:
@@ -134,6 +177,23 @@
     f.addEventListener("submit", (ev) => { if (!confirm(f.dataset.confirmar)) ev.preventDefault(); }));
   document.querySelectorAll("select[data-autoenvio]").forEach((s) =>
     s.addEventListener("change", () => s.form.submit()));
+
+  // Alto contraste: a escolha fica guardada neste navegador
+  (() => {
+    const botao = document.getElementById("alto-contraste");
+    const aplicar = (ligado) => {
+      document.documentElement.classList.toggle("alto-contraste", ligado);
+      botao.setAttribute("aria-pressed", String(ligado));
+    };
+    let salvo = false;
+    try { salvo = localStorage.getItem("sag-alto-contraste") === "1"; } catch (e) {}
+    aplicar(salvo);
+    botao.addEventListener("click", () => {
+      const ligado = !document.documentElement.classList.contains("alto-contraste");
+      aplicar(ligado);
+      try { localStorage.setItem("sag-alto-contraste", ligado ? "1" : "0"); } catch (e) {}
+    });
+  })();
 </script>
 {% block scripts %}{% endblock %}
 </body>

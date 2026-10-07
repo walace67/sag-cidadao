@@ -21,6 +21,7 @@ urlpatterns = [
     path("meus-dados/", contas.meus_dados, name="meus_dados"),
     path("meus-dados/exportar/", contas.exportar_dados, name="exportar_dados"),
     path("privacidade/", views.privacidade, name="privacidade"),
+    path("acessibilidade/", views.acessibilidade, name="acessibilidade"),
     # Servidor
     path("painel/", views.painel, name="painel"),
     path("solicitacao/<int:pk>/", views.detalhe, name="detalhe"),

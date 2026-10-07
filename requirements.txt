@@ -10,5 +10,6 @@ pyotp==2.10.0             # códigos TOTP da verificação em duas etapas
 segno==1.6.6              # QR code em SVG, sem dependências
 cryptography==50.0.1      # cifra do segredo TOTP no banco (Fernet/AES)
 Pillow==12.3.0            # leitura e limpeza das fotos (remove EXIF/GPS)
+PyJWT==2.15.1             # validação do id_token do gov.br (OpenID Connect)
 # Opcional, se usar REDIS_URL:
 # redis==6.4.0

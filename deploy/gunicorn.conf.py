@@ -18,7 +18,10 @@ from decouple import config as ler_env
 # Socket Unix: só processos da própria máquina (o Nginx) alcançam o Gunicorn.
 # Para ensaio local sem socket: GUNICORN_BIND=127.0.0.1:8000
 bind = ler_env("GUNICORN_BIND", default="unix:/run/sag-cidadao/gunicorn.sock")
-umask = 0o007  # socket acessível ao dono e ao grupo (www-data, o do Nginx)
+# Permissão padrão do que o Gunicorn cria. 0o007 (padrão): socket e pastas
+# de fotos acessíveis ao dono e ao grupo www-data (o do Nginx). No Docker,
+# o Nginx roda com outro usuário: lá se usa 0o022 (leitura para todos).
+umask = int(ler_env("GUNICORN_UMASK", default="0o007"), 8)
 
 # Fórmula clássica: 2 x núcleos + 1 processos (workers)
 workers = ler_env("GUNICORN_WORKERS", default=multiprocessing.cpu_count() * 2 + 1, cast=int)

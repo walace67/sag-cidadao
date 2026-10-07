@@ -1,0 +1,6 @@
+# Ferramentas de QUALIDADE (não vão para o servidor de produção):
+#   pip install -r requirements-dev.txt
+#   playwright install chromium
+-r requirements.txt
+playwright==1.56.0     # navegador automatizado (auditoria de acessibilidade)
+locust==2.46.7         # teste de carga

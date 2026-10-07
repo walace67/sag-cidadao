@@ -33,12 +33,14 @@ def ip_do_cliente(request):
     se o proxy for confiável, pois o cliente pode falsificar esse cabeçalho.
     """
     remoto = request.META.get("REMOTE_ADDR", "desconhecido")
-    if getattr(settings, "CONFIAR_PROXY", False):
-        # O Nginx ACRESCENTA o IP real ao final da lista; o que vier antes
-        # pode ter sido escrito pelo próprio cliente. Por isso o ÚLTIMO.
-        encaminhado = request.headers.get("x-forwarded-for", "")
+    proxies = getattr(settings, "PROXIES_CONFIAVEIS", 0) or (1 if getattr(settings, "CONFIAR_PROXY", False) else 0)
+    if proxies:
+        # Cada proxy nosso ACRESCENTA um endereço ao final da lista; o que
+        # vier antes pode ter sido escrito pelo próprio cliente. Com N
+        # proxies, o IP real é o N-ésimo a contar do fim.
+        encaminhado = [e.strip() for e in request.headers.get("x-forwarded-for", "").split(",") if e.strip()]
         if encaminhado:
-            return encaminhado.split(",")[-1].strip()
+            return encaminhado[-min(proxies, len(encaminhado))]
     return remoto
 
 

@@ -1,0 +1,17 @@
+# A cada 10 minutos.
+#   sudo cp deploy/systemd/sag-monitor.* /etc/systemd/system/
+#   sudo systemctl daemon-reload && sudo systemctl enable --now sag-monitor.timer
+#
+# Complemento externo (recomendado): um serviço FORA do servidor, como o
+# Uptime Kuma (gratuito, instalado em outra máquina), consultando
+# https://seu-dominio/saude/ a cada minuto. Se o servidor inteiro cair,
+# este timer cai junto; o monitor externo, não.
+[Unit]
+Description=Monitoramento do SAG-Cidadão a cada 10 minutos
+
+[Timer]
+OnBootSec=5min
+OnUnitActiveSec=10min
+
+[Install]
+WantedBy=timers.target
