@@ -86,7 +86,7 @@ Em desenvolvimento, os e-mails (ativação, redefinição de senha) aparecem **n
 python manage.py test
 ```
 
-São 123 testes automatizados. Eles cobrem:
+São 125 testes automatizados. Eles cobrem:
 
 - o fluxo de status e as constraints do banco;
 - o controle de acesso (403/404);
@@ -104,7 +104,7 @@ São 123 testes automatizados. Eles cobrem:
 | Teste de carga | `locust -f deploy/qa/locustfile.py` | 100 usuários: 0 erros, 95% abaixo de 66 ms (2 núcleos) |
 | Saúde interna | `python manage.py verificar_sistema` | banco, fila, backup, disco e acessos, a cada 10 min |
 
-Recursos de acessibilidade: barra com atalhos (Alt+1 conteúdo, Alt+2 menu, Alt+3 rodapé), alto contraste, navegação completa por teclado, rótulos para leitores de tela e página de acessibilidade.
+Recursos de acessibilidade: barra com atalhos (padrão eMAG: Alt+1 conteúdo, Alt+2 menu, Alt+3 busca, Alt+4 rodapé), alto contraste, navegação completa por teclado, rótulos para leitores de tela e página de acessibilidade.
 
 ## Rodar com Docker
 

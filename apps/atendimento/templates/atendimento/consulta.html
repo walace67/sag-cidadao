@@ -1,8 +1,9 @@
 {% extends "atendimento/base.html" %}
 {% block titulo %}Consultar protocolo{% endblock %}
+{% block link_busca %}#busca{% endblock %}
 {% block conteudo %}
 <h1>Consultar protocolo</h1>
-<form method="get" class="card" style="max-width:640px">
+<form method="get" class="card" style="max-width:640px" id="busca" tabindex="-1" role="search" aria-label="Consultar protocolo">
   {{ form.protocolo.label_tag }} {{ form.protocolo }} {{ form.protocolo.errors }}
   <p><button class="btn" type="submit">Consultar</button></p>
 </form>

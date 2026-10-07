@@ -1,10 +1,11 @@
 {% extends "atendimento/base.html" %}
 {% load gestao_tags %}
 {% block titulo %}Cidadãos{% endblock %}
+{% block link_busca %}#busca{% endblock %}
 {% block conteudo %}
 {% include "gestao/_abas.html" with ativa="cidadaos" %}
 <div class="cabecalho-lista"><h1>Cidadãos</h1></div>
-<form method="get" class="busca">
+<form method="get" class="busca" id="busca" tabindex="-1" role="search" aria-label="Buscar cidadãos">
   <input type="search" name="q" value="{{ q }}" placeholder="Nome, bairro ou CPF completo" aria-label="Buscar">
   <button class="btn sec" type="submit">Buscar</button>
   {% if q %}<a href="{% url 'gestao:cidadaos' %}">Limpar</a>{% endif %}

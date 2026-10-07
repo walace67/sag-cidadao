@@ -1,13 +1,14 @@
 {% extends "atendimento/base.html" %}
 {% load gestao_tags %}
 {% block titulo %}{{ cad.titulo }}{% endblock %}
+{% block link_busca %}#busca{% endblock %}
 {% block conteudo %}
 {% include "gestao/_abas.html" with ativa=tipo %}
 <div class="cabecalho-lista">
   <h1>{{ cad.titulo }}</h1>
   <a class="btn" href="{% url 'gestao:cadastro_novo' tipo %}">+ Nova {{ cad.singular }}</a>
 </div>
-<form method="get" class="busca">
+<form method="get" class="busca" id="busca" tabindex="-1" role="search" aria-label="Buscar no cadastro">
   <input type="search" name="q" value="{{ q }}" placeholder="Buscar…" aria-label="Buscar">
   <button class="btn sec" type="submit">Buscar</button>
   {% if q %}<a href="{% url 'gestao:cadastro_lista' tipo %}">Limpar</a>{% endif %}

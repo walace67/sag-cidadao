@@ -1,9 +1,10 @@
 {% extends "atendimento/base.html" %}
 {% block titulo %}Painel{% endblock %}
+{% block link_busca %}#busca{% endblock %}
 {% block conteudo %}
 <h1>Solicitações · {% if secretaria %}{{ secretaria.sigla }}{% else %}todas as secretarias{% endif %}</h1>
 
-<form method="get" class="card filtros{% if filtro.secretaria %} filtros-5{% endif %}">
+<form method="get" id="busca" tabindex="-1" role="search" aria-label="Filtrar solicitações" class="card filtros{% if filtro.secretaria %} filtros-5{% endif %}">
   {% if filtro.secretaria %}<div>{{ filtro.secretaria.label_tag }} {{ filtro.secretaria }}</div>{% endif %}
   <div>{{ filtro.status.label_tag }} {{ filtro.status }}</div>
   <div>{{ filtro.bairro.label_tag }} {{ filtro.bairro }}</div>

@@ -1,12 +1,13 @@
 {% extends "atendimento/base.html" %}
 {% block titulo %}Servidores{% endblock %}
+{% block link_busca %}#busca{% endblock %}
 {% block conteudo %}
 {% include "gestao/_abas.html" with ativa="servidores" %}
 <div class="cabecalho-lista">
   <h1>Servidores</h1>
   <a class="btn" href="{% url 'gestao:servidor_novo' %}">+ Novo servidor</a>
 </div>
-<form method="get" class="busca">
+<form method="get" class="busca" id="busca" tabindex="-1" role="search" aria-label="Buscar servidores">
   <input type="search" name="q" value="{{ q }}" placeholder="Nome, matrícula ou secretaria" aria-label="Buscar">
   <button class="btn sec" type="submit">Buscar</button>
   {% if q %}<a href="{% url 'gestao:servidores' %}">Limpar</a>{% endif %}

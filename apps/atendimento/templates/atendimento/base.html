@@ -117,7 +117,10 @@
   <div class="wrap">
     <a href="#conteudo" accesskey="1">Ir para o conteúdo [1]</a>
     <a href="#menu" accesskey="2">Ir para o menu [2]</a>
-    <a href="#rodape" accesskey="3">Ir para o rodapé [3]</a>
+    {# eMAG: 3 = busca, 4 = rodapé. Páginas com campo de busca trocam o destino pelo bloco abaixo; #}
+    {# nas demais, a busca do sistema é a consulta de protocolo. #}
+    <a href="{% block link_busca %}{% url 'atendimento:consulta' %}#busca{% endblock %}" accesskey="3">Ir para a busca [3]</a>
+    <a href="#rodape" accesskey="4">Ir para o rodapé [4]</a>
     <span class="dir">
       <a href="{% url 'atendimento:acessibilidade' %}">Acessibilidade</a>
       <button type="button" id="alto-contraste" aria-pressed="false">Alto contraste</button>
